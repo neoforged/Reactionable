@@ -1,0 +1,16 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+repositories {
+    mavenCentral()
+}
+
+application {
+    mainClass = 'net.neoforged.automation.Main'
+}
+
+dependencies {
+    implementation("io.javalin:javalin:6.2.0")
+}
