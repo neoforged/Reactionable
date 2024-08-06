@@ -31,7 +31,7 @@ dependencies {
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.13.3'
 
     implementation 'io.jsonwebtoken:jjwt-api:0.10.5'
-    implementation 'io.jsonwebtoken:jjwt-impl:0.10.5'
+    implementation 'io.jsonwebtoken:jjwt-impl:0.12.6'
     implementation 'io.jsonwebtoken:jjwt-jackson:0.10.5'
 
     implementation 'com.apollographql.apollo:apollo-runtime:2.5.9' // Apollo (GraphQL)
