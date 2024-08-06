@@ -6,6 +6,7 @@ import net.neoforged.automation.util.GHAction;
 import net.neoforged.automation.webhook.handler.ConfigurationUpdateHandler;
 import net.neoforged.automation.webhook.handler.LabelLockHandler;
 import net.neoforged.automation.webhook.handler.MergeConflictCheckHandler;
+import net.neoforged.automation.webhook.handler.ReleaseMessageHandler;
 import net.neoforged.automation.webhook.impl.GitHubEvent;
 import net.neoforged.automation.webhook.impl.WebhookHandler;
 import org.kohsuke.github.GitHubBuilder;
@@ -29,7 +30,7 @@ public class Main {
 
         var location = Configuration.load(gitHub, startupConfig);
 
-        var webhook = setupWebhookHandlers(new WebhookHandler(startupConfig, gitHub), location);
+        var webhook = setupWebhookHandlers(startupConfig, new WebhookHandler(startupConfig, gitHub), location);
 
         var app = Javalin.create(cfg -> {
                     cfg.useVirtualThreads = true;
@@ -38,10 +39,17 @@ public class Main {
                 .start(startupConfig.getInt("port", 8080));
     }
 
-    public static WebhookHandler setupWebhookHandlers(WebhookHandler handler, Configuration.RepoLocation location) {
+    public static WebhookHandler setupWebhookHandlers(StartupConfiguration startupConfig, WebhookHandler handler, Configuration.RepoLocation location) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
         return handler
                 .register(new MergeConflictCheckHandler())
                 .registerHandler(GitHubEvent.PUSH, new ConfigurationUpdateHandler(location))
+                .registerHandler(GitHubEvent.STATUS, new ReleaseMessageHandler(new GitHubBuilder()
+                        .withAuthorizationProvider(AuthUtil.githubApp(
+                                startupConfig.get("releasesGitHubAppId", ""),
+                                AuthUtil.parsePKCS8(startupConfig.get("releasesGitHubAppKey", "")),
+                                ghApp -> ghApp.getInstallationByOrganization(startupConfig.get("releasesGitHubAppOrganization", ""))
+                        ))
+                        .build()))
                 .registerFilteredHandler(GitHubEvent.ISSUES, new LabelLockHandler(), GHAction.LABELED, GHAction.UNLABELED);
     }
 }

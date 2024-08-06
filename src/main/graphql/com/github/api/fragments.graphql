@@ -1,3 +1,7 @@
+fragment IssueInfo on Issue {
+    number
+}
+
 fragment PullRequestInfo on PullRequest {
     mergeable
     number
@@ -11,7 +15,7 @@ fragment PullRequestInfo on PullRequest {
     }
     closingIssuesReferences(first: 100) {
         nodes {
-            number
+            ...IssueInfo
         }
     }
     projectItems(first: 100) {

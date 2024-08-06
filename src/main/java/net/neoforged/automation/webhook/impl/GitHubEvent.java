@@ -15,6 +15,7 @@ public final class GitHubEvent<T extends GHEventPayload> {
     public static final GitHubEvent<GHEventPayload.PullRequest> PULL_REQUEST = create("pull_request", GHEventPayload.PullRequest.class);
     public static final GitHubEvent<GHEventPayload.IssueComment> ISSUE_COMMENT = create("issue_comment", GHEventPayload.IssueComment.class);
     public static final GitHubEvent<GHEventPayload.Push> PUSH = create("push", GHEventPayload.Push.class);
+    public static final GitHubEvent<GHEventPayload.Status> STATUS = create("status", GHEventPayload.Status.class);
 
     private final Class<T> type;
     private GitHubEvent(Class<T> type) {
