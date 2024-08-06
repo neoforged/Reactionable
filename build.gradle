@@ -34,7 +34,7 @@ dependencies {
     implementation 'io.jsonwebtoken:jjwt-impl:0.10.5'
     implementation 'io.jsonwebtoken:jjwt-jackson:0.10.5'
 
-    implementation 'com.apollographql.apollo:apollo-runtime:2.5.9' // Apollo (GraphQL)
+    implementation 'com.apollographql.apollo:apollo-runtime:2.5.14' // Apollo (GraphQL)
     implementation 'com.apollographql.apollo:apollo-rx3-support:2.5.9' // Apollo support for RxJava3
 }
 
