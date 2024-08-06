@@ -1,16 +1,51 @@
 plugins {
     id 'java'
     id 'application'
+    id 'com.apollographql.apollo' version '2.5.9'
+    id 'com.github.johnrengelman.shadow' version '7.+'
 }
 
 repositories {
     mavenCentral()
 }
 
+java.toolchain {
+    languageVersion = JavaLanguageVersion.of(21)
+}
+
 application {
     mainClass = 'net.neoforged.automation.Main'
 }
 
+run {
+    workingDir(file('run'))
+}
+
 dependencies {
     implementation("io.javalin:javalin:6.2.0")
+    implementation("org.slf4j:slf4j-simple:2.0.12")
+
+    compileOnly 'org.jetbrains:annotations:23.1.0'
+    implementation 'org.kohsuke:github-api:1.323'
+    implementation 'org.bouncycastle:bcpkix-jdk15on:1.58'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.13.3'
+
+    implementation 'io.jsonwebtoken:jjwt-api:0.10.5'
+    implementation 'io.jsonwebtoken:jjwt-impl:0.10.5'
+    implementation 'io.jsonwebtoken:jjwt-jackson:0.10.5'
+
+    implementation 'com.apollographql.apollo:apollo-runtime:2.5.9' // Apollo (GraphQL)
+    implementation 'com.apollographql.apollo:apollo-rx3-support:2.5.9' // Apollo support for RxJava3
+}
+
+apollo {
+    customTypeMapping = [
+            'URI'     : 'java.net.URI'
+    ]
+}
+
+shadowJar {
+    mergeServiceFiles()
+    archiveClassifier = 'all'
+    archiveFile.set(project.file("$buildDir/libs/reactionable-all.jar"))
 }
