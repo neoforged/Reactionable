@@ -8,20 +8,26 @@ import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 public record Configuration(
+        Commands commands,
+        PRActions prActions,
         Map<String, RepoConfiguration> repositories
 ) {
-    public record RepoConfiguration(Map<String, LabelLock> labelLocks) {
-
+    public record RepoConfiguration(Boolean enabled, Map<String, LabelLock> labelLocks, List<String> formattingTasks) {
+        public RepoConfiguration {
+            enabled = enabled == null || enabled;
+        }
+        public static final RepoConfiguration DEFAULT = new RepoConfiguration(true, Map.of(), List.of());
     }
 
     private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory().disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER).enable(YAMLGenerator.Feature.LITERAL_BLOCK_STYLE));
 
-    private static volatile Configuration configuration = new Configuration(Map.of());
+    private static volatile Configuration configuration = new Configuration(new Commands(List.of(), false, false), new PRActions(null, null), Map.of());
 
     public static void load(GitHub gitHub, RepoLocation location) throws IOException {
         configuration = getOrCommit(gitHub.getRepository(location.repo()), location.path(), location.branch());
@@ -41,12 +47,17 @@ public record Configuration(
     }
 
     private Configuration sanitize() {
-        return new Configuration(repositories.entrySet()
+        return new Configuration(
+                commands, prActions, repositories.entrySet()
                 .stream().collect(Collectors.toMap(f -> f.getKey().toLowerCase(Locale.ROOT), Map.Entry::getValue)));
     }
 
     public static RepoConfiguration get(GHRepository repository) {
-        return configuration.repositories().get(repository.getFullName().toLowerCase(Locale.ROOT));
+        return configuration.repositories().getOrDefault(repository.getFullName().toLowerCase(Locale.ROOT), RepoConfiguration.DEFAULT);
+    }
+
+    public static Configuration get() {
+        return configuration;
     }
 
     public record RepoLocation(String repo, String path, String branch) {
@@ -63,4 +74,8 @@ public record Configuration(
             boolean close,
             @Nullable String message
     ) {}
+
+    public record Commands(List<String> prefixes, boolean reactToComment, boolean minimizeComment) {}
+
+    public record PRActions(String repository, String workflow) {}
 }

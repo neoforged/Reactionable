@@ -16,6 +16,7 @@ public final class GitHubEvent<T extends GHEventPayload> {
     public static final GitHubEvent<GHEventPayload.IssueComment> ISSUE_COMMENT = create("issue_comment", GHEventPayload.IssueComment.class);
     public static final GitHubEvent<GHEventPayload.Push> PUSH = create("push", GHEventPayload.Push.class);
     public static final GitHubEvent<GHEventPayload.Status> STATUS = create("status", GHEventPayload.Status.class);
+    public static final GitHubEvent<GHEventPayload.WorkflowRun> WORKFLOW_RUN = create("workflow_run", GHEventPayload.WorkflowRun.class);
 
     private final Class<T> type;
     private GitHubEvent(Class<T> type) {

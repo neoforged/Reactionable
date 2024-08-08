@@ -4,6 +4,7 @@ import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.Handler;
 import io.javalin.http.HttpStatus;
+import net.neoforged.automation.Configuration;
 import net.neoforged.automation.StartupConfiguration;
 import net.neoforged.automation.util.GHAction;
 import org.bouncycastle.crypto.digests.SHA256Digest;
@@ -81,7 +82,10 @@ public class WebhookHandler implements Handler {
 
         var bodyBytes = validateSignatures(ctx);
         try {
-            handler.handle(gitHub, ev.parse(gitHub, bodyBytes));
+            var payload = ev.parse(gitHub, bodyBytes);
+            if (Configuration.get(payload.getRepository()).enabled()) {
+                handler.handle(gitHub, payload);
+            }
         } catch (Exception exception) {
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).result("Failed to handle request: " + exception.getMessage());
             LOGGER.error("Failed to handle request {}: ", ctx.header(GITHUB_DELIVERY), exception);

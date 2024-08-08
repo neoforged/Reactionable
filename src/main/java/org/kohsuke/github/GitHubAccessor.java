@@ -10,6 +10,7 @@ import com.apollographql.apollo.exception.ApolloException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectReader;
 import net.neoforged.automation.util.ApolloReader;
+import net.neoforged.automation.util.AuthUtil;
 import org.apache.commons.io.input.ReaderInputStream;
 import org.jetbrains.annotations.Nullable;
 import org.kohsuke.github.function.InputStreamFunction;
@@ -87,6 +88,10 @@ public class GitHubAccessor {
         }
     }
 
+    public static String getToken(GitHub gitHub) throws IOException {
+        return gitHub.getClient().getEncodedAuthorization().replace("Bearer ", "");
+    }
+
     public static IssueEdit edit(GHIssue issue) {
         final Requester request = issue.root().createRequest().method("PATCH")
                 .inBody().withUrlPath(issue.getApiRoute());
@@ -115,7 +120,6 @@ public class GitHubAccessor {
         t.lateBind();
         return t;
     }
-
 
     private static final Map<GHRepository, Set<String>> EXISTING_LABELS = new ConcurrentHashMap<>();
     public static Set<String> getExistingLabels(GHRepository repository) throws IOException {

@@ -25,7 +25,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
-import java.util.function.Function;
 
 /**
  * Class containing a few helper methods for creating {@link AuthorizationProvider} for GitHub connections.

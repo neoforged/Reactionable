@@ -6,5 +6,7 @@ public enum GHAction {
     LABELED,
     UNLABELED,
 
-    SYNCHRONIZE
+    SYNCHRONIZE,
+
+    COMPLETED
 }
