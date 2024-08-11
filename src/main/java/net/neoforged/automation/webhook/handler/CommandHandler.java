@@ -76,12 +76,14 @@ public record CommandHandler(CommandDispatcher<GHCommandContext> dispatcher) imp
                 commentOnlyCommand = true;
             } else if (comment.contains(prefix)) {
                 final var index = comment.indexOf(prefix);
-                // If anywhere else, consider the line a command
-                final var newLineIndex = comment.indexOf('\n', index);
-                if (newLineIndex >= 0) {
-                    command = comment.substring(index + prefix.length(), newLineIndex);
-                } else {
-                    command = comment.substring(index + prefix.length());
+                if (comment.charAt(index) == '\n') {
+                    // If anywhere else, consider the line a command
+                    final var newLineIndex = comment.indexOf('\n', index);
+                    if (newLineIndex >= 0) {
+                        command = comment.substring(index + prefix.length(), newLineIndex);
+                    } else {
+                        command = comment.substring(index + prefix.length());
+                    }
                 }
             }
 
