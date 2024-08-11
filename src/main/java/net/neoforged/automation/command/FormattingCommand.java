@@ -42,7 +42,7 @@ public class FormattingCommand {
                         }
                         git.add().addFilepattern(".").call();
 
-                        var botName = gitHub.getApp().getSlug() + "[bot]";
+                        var botName = GitHubAccessor.getApp(gitHub).getSlug() + "[bot]";
                         var user = gitHub.getUser(botName);
                         var creds = new UsernamePasswordCredentialsProvider(
                             botName,

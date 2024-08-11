@@ -64,12 +64,19 @@ public class AuthUtil {
      * @param owner the application installation owner
      * @return the authorization provider
      */
-    public static AuthorizationProvider githubApp(String appId, byte[] key, ThrowingFunction<GHApp, GHAppInstallation> owner) throws NoSuchAlgorithmException, InvalidKeySpecException {
+    public static AppBasedAuthProvider githubApp(String appId, byte[] key, ThrowingFunction<GHApp, GHAppInstallation> owner) throws NoSuchAlgorithmException, InvalidKeySpecException {
         final PrivateKey privateKey = KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(key));
-        return new AuthorizationProvider() {
+        return new AppBasedAuthProvider() {
             @Override
             public String getEncodedAuthorization() throws IOException {
                 return "Bearer " + jwt();
+            }
+
+            @Override
+            public GitHub getApp() throws IOException {
+                return new GitHubBuilder()
+                        .withJwtToken(refreshJWT(appId, privateKey))
+                        .build();
             }
 
             private Jwt jwt = null;
@@ -85,9 +92,7 @@ public class AuthUtil {
             }
 
             private Jwt createJwt() throws IOException {
-                final GitHub gitHub = new GitHubBuilder()
-                        .withJwtToken(refreshJWT(appId, privateKey))
-                        .build();
+                final GitHub gitHub = getApp();
 
                 final GHAppInstallationToken token = owner.apply(gitHub.getApp()).createToken().create();
                 return new Jwt(token.getExpiresAt().toInstant(), token.getToken());
@@ -112,5 +117,9 @@ public class AuthUtil {
     @FunctionalInterface
     public interface ThrowingFunction<T, R> {
         R apply(T t) throws IOException;
+    }
+
+    public interface AppBasedAuthProvider extends AuthorizationProvider {
+        GitHub getApp() throws IOException;
     }
 }

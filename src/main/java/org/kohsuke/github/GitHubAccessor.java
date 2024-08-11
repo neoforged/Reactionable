@@ -129,4 +129,14 @@ public class GitHubAccessor {
         EXISTING_LABELS.put(repository, ex);
         return ex;
     }
+
+    public static GHApp getApp(GitHub owner) throws IOException {
+        try {
+            var field = GitHubClient.class.getDeclaredField("authorizationProvider");
+            field.setAccessible(true);
+            return ((AuthUtil.AppBasedAuthProvider) field.get(owner.getClient())).getApp().getApp();
+        } catch (NoSuchFieldException | IllegalAccessException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
 }
