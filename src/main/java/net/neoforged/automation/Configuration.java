@@ -18,11 +18,11 @@ public record Configuration(
         PRActions prActions,
         Map<String, RepoConfiguration> repositories
 ) {
-    public record RepoConfiguration(Boolean enabled, Map<String, LabelLock> labelLocks, List<String> formattingTasks) {
+    public record RepoConfiguration(Boolean enabled, Map<String, LabelLock> labelLocks, @Nullable String baseRunCommand, String runUploadPattern) {
         public RepoConfiguration {
             enabled = enabled == null || enabled;
         }
-        public static final RepoConfiguration DEFAULT = new RepoConfiguration(true, Map.of(), List.of());
+        public static final RepoConfiguration DEFAULT = new RepoConfiguration(true, Map.of(), null, null);
     }
 
     private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory().disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER).enable(YAMLGenerator.Feature.LITERAL_BLOCK_STYLE));

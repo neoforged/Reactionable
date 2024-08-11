@@ -17,10 +17,10 @@ import java.util.zip.ZipFile;
 
 public class FormattingCommand {
 
-    public static void run(GitHub gh, GHPullRequest pr, Configuration.PRActions actions, Configuration.RepoConfiguration repoConfiguration, Consumer<GHWorkflowRun> onFailure, Runnable onSuccess) throws IOException {
+    public static void run(GitHub gh, GHPullRequest pr, Configuration.PRActions actions, Configuration.RepoConfiguration repoConfiguration, String command, Consumer<GHWorkflowRun> onFailure, Runnable onSuccess) throws IOException {
         PRActionRunner.builder(pr)
-                .upload("src*/main/java/")
-                .command(repoConfiguration.formattingTasks())
+                .upload(repoConfiguration.runUploadPattern())
+                .command(repoConfiguration.baseRunCommand(), command)
                 .onFailed((gitHub, run) -> onFailure.accept(run))
                 .onFinished((gitHub, run, artifact) -> {
                     PRRunUtils.setupPR(pr, (dir, git) -> {
