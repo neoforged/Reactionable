@@ -18,9 +18,16 @@ import java.util.zip.ZipFile;
 public class FormattingCommand {
 
     public static void run(GitHub gh, GHPullRequest pr, Configuration.PRActions actions, Configuration.RepoConfiguration repoConfiguration, String command, Consumer<GHWorkflowRun> onFailure, Runnable onSuccess) throws IOException {
+        var command2 = command;
+        var baseCommand = repoConfiguration.baseRunCommand();
+        if (baseCommand.split("\n").length > 1) {
+            var spl = baseCommand.split("\n", 2);
+            baseCommand = spl[0].trim();
+            command2 = spl[1].trim() + " && " + command2;
+        }
         PRActionRunner.builder(pr)
                 .upload(repoConfiguration.runUploadPattern())
-                .command(repoConfiguration.baseRunCommand(), command)
+                .command(baseCommand, command2)
                 .onFailed((gitHub, run) -> onFailure.accept(run))
                 .onFinished((gitHub, run, artifact) -> {
                     PRRunUtils.setupPR(pr, (dir, git) -> {
