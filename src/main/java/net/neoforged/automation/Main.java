@@ -14,6 +14,7 @@ import net.neoforged.automation.webhook.handler.ReleaseMessageHandler;
 import net.neoforged.automation.webhook.impl.GitHubEvent;
 import net.neoforged.automation.webhook.impl.WebhookHandler;
 import org.kohsuke.github.GitHubBuilder;
+import org.kohsuke.github.extras.HttpClientGitHubConnector;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -30,6 +31,7 @@ public class Main {
                         AuthUtil.parsePKCS8(startupConfig.get("gitHubAppKey", "")),
                         ghApp -> ghApp.getInstallationByOrganization(startupConfig.get("gitHubAppOrganization", ""))
                 ))
+                .withConnector(new HttpClientGitHubConnector())
                 .build();
 
         var location = Configuration.load(gitHub, startupConfig);
@@ -53,6 +55,7 @@ public class Main {
                                 AuthUtil.parsePKCS8(startupConfig.get("releasesGitHubAppKey", "")),
                                 ghApp -> ghApp.getInstallationByOrganization(startupConfig.get("releasesGitHubAppOrganization", ""))
                         ))
+                        .withConnector(new HttpClientGitHubConnector())
                         .build()))
                 .registerFilteredHandler(GitHubEvent.ISSUES, new LabelLockHandler(), GHAction.LABELED, GHAction.UNLABELED)
                 .registerFilteredHandler(GitHubEvent.WORKFLOW_RUN, new PRActionRunnerHandler(), GHAction.COMPLETED)
