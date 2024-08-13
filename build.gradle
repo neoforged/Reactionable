@@ -56,4 +56,7 @@ shadowJar {
     mergeServiceFiles()
     archiveClassifier = 'all'
     archiveFile.set(project.file("$buildDir/libs/reactionable-all.jar"))
+    manifest {
+        attributes(['Multi-Release': true])
+    }
 }
