@@ -12,6 +12,7 @@ import org.kohsuke.github.GitHubAccessor;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.function.Consumer;
 import java.util.zip.ZipFile;
 
@@ -35,7 +36,11 @@ public class FormattingCommand {
                             var enm = file.entries();
                             while (enm.hasMoreElements()) {
                                 var entry = enm.nextElement();
-                                Files.write(dir.resolve(entry.getName()), file.getInputStream(entry).readAllBytes());
+                                if (entry.isDirectory()) continue;
+                                var path = dir.resolve(entry.getName());
+                                if (!checkSafe(dir, path)) return;
+                                Files.createDirectories(path.getParent());
+                                Files.write(path, file.getInputStream(entry).readAllBytes());
                             }
                         } catch (IOException e) {
                             throw new RuntimeException(e);
@@ -61,5 +66,14 @@ public class FormattingCommand {
                 })
                 .build()
                 .queue(gh, actions);
+    }
+
+    private static boolean checkSafe(Path dir, Path path) {
+        var parent = path;
+        while ((parent = parent.getParent()) != null) {
+            if (dir.getFileName().toString().equals(".git")) return false;
+            if (dir.equals(parent)) return true;
+        }
+        return false;
     }
 }
