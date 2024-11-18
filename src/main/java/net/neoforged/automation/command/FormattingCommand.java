@@ -63,7 +63,7 @@ public class FormattingCommand {
                         for (String del : deleted) {
                             var path = dir.resolve(del);
                             if (checkSafe(dir, path)) {
-                                Files.deleteIfExists(path);
+                                Files.delete(path);
                             }
                         }
 
@@ -93,7 +93,7 @@ public class FormattingCommand {
     private static boolean checkSafe(Path dir, Path path) {
         var parent = path;
         while ((parent = parent.getParent()) != null) {
-            if (dir.getFileName().toString().equals(".git")) return false;
+            if (parent.getFileName().toString().equals(".git")) return false;
             if (dir.equals(parent)) return true;
         }
         return false;
