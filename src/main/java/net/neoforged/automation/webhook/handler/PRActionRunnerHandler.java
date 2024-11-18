@@ -45,6 +45,7 @@ public record PRActionRunnerHandler() implements ActionBasedHandler<GHEventPaylo
                     });
                     paths.put(artifact.getName(), path);
                 }
+                LOGGER.info("Action run {} found {} artifacts: {}", run.getHtmlUrl(), paths.size(), paths.keySet());
 
                 if (paths.isEmpty()) {
                     LOGGER.error("Action run {} didn't upload an artifact!", run.getHtmlUrl());
