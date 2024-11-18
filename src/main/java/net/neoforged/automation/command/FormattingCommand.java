@@ -13,6 +13,8 @@ import org.kohsuke.github.GitHubAccessor;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.zip.ZipFile;
 
@@ -30,9 +32,21 @@ public class FormattingCommand {
                 .upload(repoConfiguration.runUploadPattern())
                 .command(baseCommand, command2)
                 .onFailed((gitHub, run) -> onFailure.accept(run))
-                .onFinished((gitHub, run, artifact) -> {
+                .onFinished((gitHub, run, artifacts) -> {
                     PRRunUtils.setupPR(pr, (dir, git) -> {
-                        try (var file = new ZipFile(artifact.toFile())) {
+                        List<String> deleted = new ArrayList<>();
+                        try (var file = new ZipFile(artifacts.get("status").toFile())) {
+                            var entry = file.entries().nextElement();
+                            var status = new String(file.getInputStream(entry).readAllBytes());
+                            for (String s : status.split("\n")) {
+                                s = s.trim();
+                                if (s.startsWith("deleted:")) {
+                                    deleted.add(s.substring(8).trim());
+                                }
+                            }
+                        }
+
+                        try (var file = new ZipFile(artifacts.get("artifact").toFile())) {
                             var enm = file.entries();
                             while (enm.hasMoreElements()) {
                                 var entry = enm.nextElement();
@@ -45,6 +59,14 @@ public class FormattingCommand {
                         } catch (IOException e) {
                             throw new RuntimeException(e);
                         }
+
+                        for (String del : deleted) {
+                            var path = dir.resolve(del);
+                            if (checkSafe(dir, path)) {
+                                Files.deleteIfExists(path);
+                            }
+                        }
+
                         git.add().addFilepattern(".").call();
 
                         var botName = GitHubAccessor.getApp(gitHub).getSlug() + "[bot]";
