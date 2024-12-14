@@ -90,6 +90,17 @@ public class GitHubAccessor {
         }
     }
 
+    public static void merge(GHPullRequest pr, String title, String message, GHPullRequest.MergeMethod method) throws IOException {
+        pr.root().createRequest()
+                .method("PUT")
+                .with("commit_message", message == null ? "" : message)
+                .with("commit_title", title)
+                .with("sha", pr.getHead().getSha())
+                .with("merge_method", method)
+                .withUrlPath(pr.getApiRoute() + "/merge")
+                .send();
+    }
+
     public static String getToken(GitHub gitHub) throws IOException {
         return gitHub.getClient().getEncodedAuthorization().replace("Bearer ", "");
     }

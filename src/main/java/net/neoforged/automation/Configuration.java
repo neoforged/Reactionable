@@ -1,8 +1,11 @@
 package net.neoforged.automation;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
+import net.neoforged.automation.webhook.label.LabelHandler;
 import org.jetbrains.annotations.Nullable;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
@@ -13,20 +16,22 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record Configuration(
         Commands commands,
         PRActions prActions,
         Map<String, RepoConfiguration> repositories
 ) {
-    public record RepoConfiguration(Boolean enabled, Map<String, LabelLock> labelLocks, @Nullable String baseRunCommand, String runUploadPattern) {
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record RepoConfiguration(Boolean enabled, @JsonDeserialize(contentUsing = LabelHandler.Deserializer.class) Map<String, LabelHandler> labelHandlers, @Nullable String baseRunCommand, String runUploadPattern) {
         public RepoConfiguration {
             enabled = enabled == null || enabled;
+            labelHandlers = labelHandlers == null ? Map.of() : labelHandlers;
         }
         public static final RepoConfiguration DEFAULT = new RepoConfiguration(true, Map.of(), null, null);
     }
 
     private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory().disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER).enable(YAMLGenerator.Feature.LITERAL_BLOCK_STYLE));
-
     private static volatile Configuration configuration = new Configuration(new Commands(List.of(), false, false), new PRActions(null, null), Map.of());
 
     public static void load(GitHub gitHub, RepoLocation location) throws IOException {
@@ -67,13 +72,6 @@ public record Configuration(
             return new RepoLocation(repoAndDirBranch[0], dirAndBranch[0], dirAndBranch[1]);
         }
     }
-
-    public record LabelLock(
-            boolean lock,
-            @Nullable String lockReason,
-            boolean close,
-            @Nullable String message
-    ) {}
 
     public record Commands(List<String> prefixes, boolean reactToComment, boolean minimizeComment) {}
 

@@ -8,7 +8,7 @@ import net.neoforged.automation.util.GHAction;
 import net.neoforged.automation.webhook.handler.AutomaticLabelHandler;
 import net.neoforged.automation.webhook.handler.CommandHandler;
 import net.neoforged.automation.webhook.handler.ConfigurationUpdateHandler;
-import net.neoforged.automation.webhook.handler.LabelLockHandler;
+import net.neoforged.automation.webhook.handler.LabelEventHandler;
 import net.neoforged.automation.webhook.handler.MergeConflictCheckHandler;
 import net.neoforged.automation.webhook.handler.PRActionRunnerHandler;
 import net.neoforged.automation.webhook.handler.ReleaseMessageHandler;
@@ -56,6 +56,7 @@ public class Main {
     public static WebhookHandler setupWebhookHandlers(StartupConfiguration startupConfig, WebhookHandler handler, Configuration.RepoLocation location) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
         return handler
                 .register(new MergeConflictCheckHandler())
+                .register(new LabelEventHandler())
                 .registerHandler(GitHubEvent.PUSH, new ConfigurationUpdateHandler(location))
                 .registerHandler(GitHubEvent.STATUS, new ReleaseMessageHandler(new GitHubBuilder()
                         .withAuthorizationProvider(AuthUtil.githubApp(
@@ -64,7 +65,6 @@ public class Main {
                                 ghApp -> ghApp.getInstallationByOrganization(startupConfig.get("releasesGitHubAppOrganization", ""))
                         ))
                         .build()))
-                .registerFilteredHandler(GitHubEvent.ISSUES, new LabelLockHandler(), GHAction.LABELED, GHAction.UNLABELED)
                 .registerFilteredHandler(GitHubEvent.WORKFLOW_RUN, new PRActionRunnerHandler(), GHAction.COMPLETED)
                 .registerFilteredHandler(GitHubEvent.ISSUE_COMMENT, new CommandHandler(Commands.register(new CommandDispatcher<>())), GHAction.CREATED)
                 .registerFilteredHandler(GitHubEvent.PULL_REQUEST, new AutomaticLabelHandler(), GHAction.OPENED, GHAction.REOPENED)
