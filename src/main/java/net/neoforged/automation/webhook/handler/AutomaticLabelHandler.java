@@ -16,10 +16,16 @@ public class AutomaticLabelHandler implements ActionBasedHandler<GHEventPayload.
     @Override
     public void handle(GitHub gitHub, GHEventPayload.PullRequest payload, GHAction action) throws Exception {
         var labels = getClosingIssueLabels(gitHub, payload.getPullRequest());
+
+        // bug and enhancement are exclusive
         if (labels.contains("bug")) {
             payload.getPullRequest().addLabels("bug");
         } else if (labels.contains("enhancement")) {
             payload.getPullRequest().addLabels("enhancement");
+        }
+
+        if (labels.contains("regression")) {
+            payload.getPullRequest().addLabels("regression");
         }
     }
 
