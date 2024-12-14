@@ -3,13 +3,16 @@ package net.neoforged.automation.webhook.handler;
 import com.github.api.GetPullRequestQuery;
 import com.github.api.GetPullRequestsQuery;
 import com.github.api.fragment.PullRequestInfo;
+import com.github.api.type.MergeStateStatus;
 import com.github.api.type.MergeableState;
 import com.github.api.type.PullRequestState;
+import net.neoforged.automation.Configuration;
 import net.neoforged.automation.util.GHAction;
 import net.neoforged.automation.util.Label;
 import net.neoforged.automation.webhook.impl.GitHubEvent;
 import net.neoforged.automation.webhook.impl.MultiEventHandler;
 import net.neoforged.automation.webhook.impl.WebhookHandler;
+import net.neoforged.automation.webhook.label.KeepRebasedHandler;
 import org.kohsuke.github.GHPullRequest;
 import org.kohsuke.github.GHPullRequestReview;
 import org.kohsuke.github.GHPullRequestReviewState;
@@ -28,7 +31,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 public final class MergeConflictCheckHandler implements MultiEventHandler {
-    private static final long PR_BASE_TIME = 3;
+    public static final long PR_BASE_TIME = 3;
     private static final ScheduledThreadPoolExecutor SERVICE = new ScheduledThreadPoolExecutor(1);
     private static final Set<String> IN_PROGRESS_REPOS = Collections.synchronizedSet(new HashSet<>());
 
@@ -97,6 +100,19 @@ public final class MergeConflictCheckHandler implements MultiEventHandler {
         final int number = info.number();
         final GHRepository repo = gitHub.getRepository(info.repository().nameWithOwner());
         final GHPullRequest pr = repo.getPullRequest(number);
+
+        // If the PR is mergeable but behind and it has a keep-rebased label, we shall rebase it
+        if (state == MergeableState.MERGEABLE && info.mergeStateStatus() == MergeStateStatus.BEHIND) {
+            var conf = Configuration.get(repo);
+            for (PullRequestInfo.Node node : info.labels().nodes()) {
+                if (conf.getLabelOfType(node.name(), KeepRebasedHandler.class) != null) {
+                    pr.updateBranch();
+                    break;
+                }
+            }
+            return state;
+        }
+
         if (hasLabel && state == MergeableState.MERGEABLE) {
             // We don't have conflicts but the PR has the label... remove it.
             Label.NEEDS_REBASE.remove(pr);

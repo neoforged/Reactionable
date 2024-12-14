@@ -29,6 +29,12 @@ public record Configuration(
             labelHandlers = labelHandlers == null ? Map.of() : labelHandlers;
         }
         public static final RepoConfiguration DEFAULT = new RepoConfiguration(true, Map.of(), null, null);
+
+        @Nullable
+        public <T extends LabelHandler> T getLabelOfType(String label, Class<T> type) {
+            var handler = labelHandlers.get(label);
+            return type.isInstance(handler) ? (T) handler : null;
+        }
     }
 
     private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory().disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER).enable(YAMLGenerator.Feature.LITERAL_BLOCK_STYLE));

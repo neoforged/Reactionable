@@ -9,6 +9,7 @@ fragment IssueInfo on Issue {
 
 fragment PullRequestInfo on PullRequest {
     mergeable
+    mergeStateStatus
     number
     permalink
     title

@@ -16,7 +16,8 @@ import java.util.Map;
 public interface LabelHandler {
     Map<String, Class<? extends LabelHandler>> TYPES = Map.of(
             "lock", LockLabelHandler.class,
-            "merge", MergeLabelHandler.class
+            "merge", MergeLabelHandler.class,
+            "keep-rebased", KeepRebasedHandler.class
     );
 
     default void onLabelAdded(GitHub gitHub, GHUser actor, GHIssue issue, GHLabel label) throws Exception {
