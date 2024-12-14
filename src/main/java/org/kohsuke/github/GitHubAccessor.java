@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectReader;
 import net.neoforged.automation.util.ApolloReader;
 import net.neoforged.automation.util.AuthUtil;
 import org.apache.commons.io.input.ReaderInputStream;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.kohsuke.github.function.InputStreamFunction;
 
@@ -67,6 +68,7 @@ public class GitHubAccessor {
                 .fetchStream(isF);
     }
 
+    @NotNull
     @SuppressWarnings("unchecked")
     public static <T> T graphQl(GitHub gitHub, Operation<?, T, ?> call) throws IOException {
         final Response<T> response = graphQl(gitHub, call.composeRequestBody().utf8(), in -> (Response<T>) READER.read(call, in));

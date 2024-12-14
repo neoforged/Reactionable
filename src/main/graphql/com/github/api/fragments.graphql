@@ -1,5 +1,10 @@
 fragment IssueInfo on Issue {
     number
+    labels(first: 100) {
+        nodes {
+            name
+        }
+    }
 }
 
 fragment PullRequestInfo on PullRequest {

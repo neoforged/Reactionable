@@ -33,7 +33,7 @@ public class WebhookHandler implements Handler {
     private final byte[] secretToken;
     private final GitHub gitHub;
 
-    private final Map<GitHubEvent, EventHandler> handlers = new IdentityHashMap<>();
+    private final Map<GitHubEvent, EventHandler[]> handlers = new IdentityHashMap<>();
 
     public WebhookHandler(StartupConfiguration configuration, GitHub gitHub) {
         this.secretToken = configuration.get("webhookSecret", "").getBytes(StandardCharsets.UTF_8);
@@ -48,9 +48,12 @@ public class WebhookHandler implements Handler {
     public <T extends GHEventPayload> WebhookHandler registerHandler(GitHubEvent<T> event, EventHandler<T> handler) {
         handlers.compute(event, (k, old) -> {
             if (old != null) {
-                return old.and(handler);
+                var newArray = new EventHandler[old.length + 1];
+                System.arraycopy(old, 0, newArray, 0, old.length);
+                newArray[old.length] = handler;
+                return newArray;
             }
-            return handler;
+            return new EventHandler[] {handler};
         });
         return this;
     }
@@ -74,8 +77,8 @@ public class WebhookHandler implements Handler {
             return;
         }
 
-        var handler = handlers.get(ev);
-        if (handler == null) {
+        var handlers = this.handlers.get(ev);
+        if (handlers == null) {
             ctx.status(HttpStatus.OK).result("No handlers registered for event " + event);
             return;
         }
@@ -84,7 +87,9 @@ public class WebhookHandler implements Handler {
         try {
             var payload = ev.parse(gitHub, bodyBytes);
             if (Configuration.get(payload.getRepository()).enabled()) {
-                handler.handle(gitHub, payload);
+                for (EventHandler handler : handlers) {
+                    handler.handle(gitHub, payload);
+                }
             }
         } catch (Exception exception) {
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).result("Failed to handle request: " + exception.getMessage());
