@@ -1,6 +1,6 @@
 fragment IssueInfo on Issue {
     number
-    labels(first: 100) {
+    labels(first: 25) {
         nodes {
             name
         }
@@ -14,22 +14,14 @@ fragment PullRequestInfo on PullRequest {
     permalink
     title
     updatedAt
-    labels(first: 100) {
+    labels(first: 25) {
         nodes {
             name
         }
     }
-    closingIssuesReferences(first: 100) {
+    closingIssuesReferences(first: 10) {
         nodes {
             ...IssueInfo
-        }
-    }
-    projectItems(first: 100) {
-        nodes {
-            id
-            project {
-                id
-            }
         }
     }
     repository {
