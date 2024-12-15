@@ -1,5 +1,6 @@
 package net.neoforged.automation;
 
+import com.github.api.GetPullRequestQuery;
 import com.mojang.brigadier.CommandDispatcher;
 import io.javalin.Javalin;
 import net.neoforged.automation.command.Commands;
@@ -51,6 +52,13 @@ public class Main {
                 .start(startupConfig.getInt("port", 8080));
 
         LOGGER.warn("Started up! Logged as {} on GitHub", GitHubAccessor.getApp(gitHub).getSlug());
+
+        System.out.println(GitHubAccessor.graphQl(gitHub, GetPullRequestQuery
+                .builder()
+                .owner("neoforged")
+                .name("neoforge")
+                .number(1771)
+                .build()));
     }
 
     public static WebhookHandler setupWebhookHandlers(StartupConfiguration startupConfig, WebhookHandler handler, Configuration.RepoLocation location) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {

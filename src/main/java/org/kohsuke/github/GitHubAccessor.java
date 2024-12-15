@@ -1,16 +1,18 @@
 package org.kohsuke.github;
 
-import com.apollographql.apollo.ApolloClient;
-import com.apollographql.apollo.api.CustomTypeAdapter;
-import com.apollographql.apollo.api.CustomTypeValue;
-import com.apollographql.apollo.api.Error;
+import com.apollographql.apollo.api.Adapter;
+import com.apollographql.apollo.api.CustomScalarAdapters;
 import com.apollographql.apollo.api.Operation;
-import com.apollographql.apollo.api.Response;
-import com.apollographql.apollo.exception.ApolloException;
+import com.apollographql.apollo.api.Operations;
+import com.apollographql.apollo.api.json.BufferedSinkJsonWriter;
+import com.apollographql.apollo.api.json.BufferedSourceJsonReader;
+import com.apollographql.apollo.api.json.JsonReader;
+import com.apollographql.apollo.api.json.JsonWriter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectReader;
-import net.neoforged.automation.util.ApolloReader;
 import net.neoforged.automation.util.AuthUtil;
+import okio.Buffer;
+import okio.Okio;
 import org.apache.commons.io.input.ReaderInputStream;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -20,31 +22,26 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class GitHubAccessor {
 
-    public static final ApolloClient CLIENT = ApolloClient.builder()
-            .serverUrl("https://api.github.com/graphql")
-            .callFactory(request -> null)
-            .addCustomTypeAdapter(com.github.api.type.CustomType.URI, new CustomTypeAdapter<URI>() {
-
+    public static final CustomScalarAdapters ADAPTERS = new CustomScalarAdapters.Builder()
+            .add(com.github.api.type.URI.type, new Adapter<URI>() {
                 @Override
-                public CustomTypeValue<?> encode(URI uri) {
-                    return new CustomTypeValue.GraphQLString(uri.toString());
+                public void toJson(@NotNull JsonWriter jsonWriter, @NotNull CustomScalarAdapters customScalarAdapters, URI uri) throws IOException {
+                    jsonWriter.value(uri.toString());
                 }
 
                 @Override
-                public URI decode(CustomTypeValue<?> customTypeValue) {
-                    return URI.create(customTypeValue.value.toString());
+                public URI fromJson(@NotNull JsonReader jsonReader, @NotNull CustomScalarAdapters customScalarAdapters) throws IOException {
+                    return URI.create(jsonReader.nextString());
                 }
-            }).build();
-    public static final ApolloReader READER = ApolloReader.ofClient(CLIENT);
+            })
+            .build();
 
     public static ObjectReader objectReader(GitHub gitHub) {
         return GitHubClient.getMappingObjectReader(gitHub);
@@ -69,16 +66,15 @@ public class GitHubAccessor {
     }
 
     @NotNull
-    @SuppressWarnings("unchecked")
-    public static <T> T graphQl(GitHub gitHub, Operation<?, T, ?> call) throws IOException {
-        final Response<T> response = graphQl(gitHub, call.composeRequestBody().utf8(), in -> (Response<T>) READER.read(call, in));
-        final T res = response.getData();
-        if (res == null) {
-            throw new ApolloException(Objects.<List<Error>>requireNonNullElse(response.getErrors(), List.of()).stream()
-                    .map(Error::toString).collect(Collectors.joining("; ")));
-        } else {
-            return res;
-        }
+    public static <T extends Operation.Data> T graphQl(GitHub gitHub, Operation<T> call) throws IOException {
+        var buf = new Buffer();
+        var writer = new BufferedSinkJsonWriter(buf);
+        Operations.composeJsonRequest(call, writer, ADAPTERS);
+        var query = buf.readUtf8();
+        return graphQl(gitHub, query, in -> {
+            var reader = new BufferedSourceJsonReader(Okio.buffer(Okio.source(in)));
+            return Operations.parseResponse(call, reader, null, ADAPTERS).data;
+        });
     }
 
     public static void lock(GHIssue issue, @Nullable LockReason reason) throws IOException {

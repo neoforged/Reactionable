@@ -1,7 +1,7 @@
 plugins {
     id 'java'
     id 'application'
-    id 'com.apollographql.apollo' version '2.5.14'
+    id 'com.apollographql.apollo' version "$apollo"
     id 'com.github.johnrengelman.shadow' version '7.+'
 }
 
@@ -40,16 +40,22 @@ dependencies {
 
     implementation 'com.mojang:brigadier:1.0.18'
 
-    implementation 'com.apollographql.apollo:apollo-runtime:2.5.14' // Apollo (GraphQL)
-    implementation 'com.apollographql.apollo:apollo-rx3-support:2.5.14' // Apollo support for RxJava3
+    implementation "com.apollographql.apollo:apollo-api:$apollo" // Apollo (GraphQL)
 
     implementation 'org.eclipse.jgit:org.eclipse.jgit:6.10.0.202406032230-r'
 }
 
 apollo {
-    customTypeMapping = [
-            'URI'     : 'java.net.URI'
-    ]
+    service('service') {
+        packageName = 'com.github.api'
+        generateKotlinModels = false
+        generatePrimitiveTypes = true
+        languageVersion = '17'
+        addTypename = 'ifPolymorphic'
+        classesForEnumsMatching.set([])
+        mapScalar('URI', 'java.net.URI')
+    }
+    generateSourcesDuringGradleSync.set(true)
 }
 
 shadowJar {

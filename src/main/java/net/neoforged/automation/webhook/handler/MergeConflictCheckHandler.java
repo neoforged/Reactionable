@@ -57,8 +57,8 @@ public final class MergeConflictCheckHandler implements MultiEventHandler {
                         .name(pullRequest.getRepository().getName())
                         .number(pullRequest.getNumber())
                         .build())
-                .repository()
-                .pullRequest().fragments().pullRequestInfo()) == MergeableState.UNKNOWN) {
+                .repository
+                .pullRequest.pullRequestInfo) == MergeableState.UNKNOWN) {
             Thread.sleep(PR_BASE_TIME * 1000);
         }
     }
@@ -70,10 +70,10 @@ public final class MergeConflictCheckHandler implements MultiEventHandler {
                         .name(repository.getName())
                         .baseRef(branchName)
                         .states(List.of(PullRequestState.OPEN))
-                        .build()).repository().pullRequests()
-                .nodes();
+                        .build()).repository.pullRequests
+                .nodes;
 
-        final long unknownAmount = prs.stream().filter(it -> it.fragments().pullRequestInfo().mergeable() == MergeableState.UNKNOWN).count();
+        final long unknownAmount = prs.stream().filter(it -> it.pullRequestInfo.mergeable == MergeableState.UNKNOWN).count();
         if (unknownAmount > 0) {
             // If we don't know the status of one or more PRs, give GitHub some time to think.
             SERVICE.schedule(() -> {
@@ -87,26 +87,26 @@ public final class MergeConflictCheckHandler implements MultiEventHandler {
         }
 
         for (final var node : prs) {
-            checkConflict(gitHub, node.fragments().pullRequestInfo());
+            checkConflict(gitHub, node.pullRequestInfo);
         }
 
         IN_PROGRESS_REPOS.remove(repository.getFullName());
     }
 
     public static MergeableState checkConflict(GitHub gitHub, PullRequestInfo info) throws IOException {
-        final boolean hasLabel = info.labels().nodes().stream().anyMatch(node -> node.name().equalsIgnoreCase(Label.NEEDS_REBASE.getLabelName()));
-        final MergeableState state = info.mergeable();
+        final boolean hasLabel = info.labels.nodes.stream().anyMatch(node -> node.name.equalsIgnoreCase(Label.NEEDS_REBASE.getLabelName()));
+        final MergeableState state = info.mergeable;
         if (hasLabel && state == MergeableState.CONFLICTING) return state; // We have conflicts and the PR has the label already
 
-        final int number = info.number();
-        final GHRepository repo = gitHub.getRepository(info.repository().nameWithOwner());
+        final int number = info.number;
+        final GHRepository repo = gitHub.getRepository(info.repository.nameWithOwner);
         final GHPullRequest pr = repo.getPullRequest(number);
 
         // If the PR is mergeable but behind and it has a keep-rebased label, we shall rebase it
-        if (state == MergeableState.MERGEABLE && info.viewerCanUpdateBranch()) {
+        if (state == MergeableState.MERGEABLE && info.viewerCanUpdateBranch) {
             var conf = Configuration.get(repo);
-            for (PullRequestInfo.Node node : info.labels().nodes()) {
-                if (conf.getLabelOfType(node.name(), KeepRebasedHandler.class) != null) {
+            for (PullRequestInfo.Node node : info.labels.nodes) {
+                if (conf.getLabelOfType(node.name, KeepRebasedHandler.class) != null) {
                     pr.updateBranch();
                     break;
                 }

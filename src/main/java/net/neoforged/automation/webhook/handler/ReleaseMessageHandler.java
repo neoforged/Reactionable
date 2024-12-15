@@ -37,15 +37,14 @@ public record ReleaseMessageHandler(GitHub releasesApp) implements EventHandler<
                                 .owner(payload.getRepository().getOwnerName())
                                 .number(pr.getNumber())
                                 .build())
-                        .repository()
-                        .pullRequest()
-                        .fragments()
-                        .pullRequestInfo()
-                        .closingIssuesReferences()
-                        .nodes()) {
-                    repo.getIssue(issueNode.fragments().issueInfo().number())
+                        .repository
+                        .pullRequest
+                        .pullRequestInfo
+                        .closingIssuesReferences
+                        .nodes) {
+                    repo.getIssue(issueNode.issueInfo.number)
                             .comment(baseIssueComment);
-                    closedIssues.add(issueNode.fragments().issueInfo().number());
+                    closedIssues.add(issueNode.issueInfo.number);
                 }
             }
 

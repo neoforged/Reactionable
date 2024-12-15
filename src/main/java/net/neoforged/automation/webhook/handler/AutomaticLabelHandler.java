@@ -36,14 +36,13 @@ public class AutomaticLabelHandler implements ActionBasedHandler<GHEventPayload.
                         .owner(pr.getRepository().getOwnerName())
                         .number(pr.getNumber())
                         .build())
-                .repository()
-                .pullRequest()
-                .fragments()
-                .pullRequestInfo()
-                .closingIssuesReferences()
-                .nodes()) {
-            var issue = issueNode.fragments().issueInfo();
-            issue.labels().nodes().forEach(n -> labels.add(n.name().toLowerCase(Locale.ROOT)));
+                .repository
+                .pullRequest
+                .pullRequestInfo
+                .closingIssuesReferences
+                .nodes) {
+            var issue = issueNode.issueInfo;
+            issue.labels.nodes.forEach(n -> labels.add(n.name.toLowerCase(Locale.ROOT)));
         }
         return labels;
     }
