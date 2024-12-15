@@ -3,7 +3,6 @@ package net.neoforged.automation.webhook.handler;
 import com.github.api.GetPullRequestQuery;
 import com.github.api.GetPullRequestsQuery;
 import com.github.api.fragment.PullRequestInfo;
-import com.github.api.type.MergeStateStatus;
 import com.github.api.type.MergeableState;
 import com.github.api.type.PullRequestState;
 import net.neoforged.automation.Configuration;
@@ -31,7 +30,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 public final class MergeConflictCheckHandler implements MultiEventHandler {
-    public static final long PR_BASE_TIME = 3;
+    private static final long PR_BASE_TIME = 3;
     private static final ScheduledThreadPoolExecutor SERVICE = new ScheduledThreadPoolExecutor(1);
     private static final Set<String> IN_PROGRESS_REPOS = Collections.synchronizedSet(new HashSet<>());
 
@@ -49,17 +48,19 @@ public final class MergeConflictCheckHandler implements MultiEventHandler {
             checkPRConflicts(gitHub, payload.getRepository(), branch);
         });
 
-        handler.registerFilteredHandler(GitHubEvent.PULL_REQUEST, (gitHub, payload, action) -> {
-            while (checkConflict(gitHub, GitHubAccessor.graphQl(gitHub, GetPullRequestQuery.builder()
-                            .owner(payload.getRepository().getOwnerName())
-                            .name(payload.getRepository().getName())
-                            .number(payload.getPullRequest().getNumber())
-                            .build())
-                    .repository()
-                    .pullRequest().fragments().pullRequestInfo()) == MergeableState.UNKNOWN) {
-                Thread.sleep(PR_BASE_TIME * 1000);
-            }
-        }, GHAction.SYNCHRONIZE);
+        handler.registerFilteredHandler(GitHubEvent.PULL_REQUEST, (gitHub, payload, action) -> checkPR(gitHub, payload.getPullRequest()), GHAction.SYNCHRONIZE);
+    }
+
+    public static void checkPR(GitHub gitHub, GHPullRequest pullRequest) throws Exception {
+        while (checkConflict(gitHub, GitHubAccessor.graphQl(gitHub, GetPullRequestQuery.builder()
+                        .owner(pullRequest.getRepository().getOwnerName())
+                        .name(pullRequest.getRepository().getName())
+                        .number(pullRequest.getNumber())
+                        .build())
+                .repository()
+                .pullRequest().fragments().pullRequestInfo()) == MergeableState.UNKNOWN) {
+            Thread.sleep(PR_BASE_TIME * 1000);
+        }
     }
 
     public static void checkPRConflicts(GitHub gitHub, GHRepository repository, String branchName) throws IOException {
@@ -102,7 +103,7 @@ public final class MergeConflictCheckHandler implements MultiEventHandler {
         final GHPullRequest pr = repo.getPullRequest(number);
 
         // If the PR is mergeable but behind and it has a keep-rebased label, we shall rebase it
-        if (state == MergeableState.MERGEABLE && info.mergeStateStatus() == MergeStateStatus.BEHIND) {
+        if (state == MergeableState.MERGEABLE && info.viewerCanUpdateBranch()) {
             var conf = Configuration.get(repo);
             for (PullRequestInfo.Node node : info.labels().nodes()) {
                 if (conf.getLabelOfType(node.name(), KeepRebasedHandler.class) != null) {
