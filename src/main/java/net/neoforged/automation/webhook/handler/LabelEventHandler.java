@@ -30,6 +30,19 @@ public final class LabelEventHandler implements MultiEventHandler {
                 case UNLABELED -> handler.onLabelRemoved(gitHub, payload.getSender(), payload.getPullRequest(), payload.getLabel());
             }
         }, GHAction.LABELED, GHAction.UNLABELED);
+        
+        web.registerFilteredHandler(GitHubEvent.PULL_REQUEST, (gitHub, payload, action) -> {
+            var pr = payload.getPullRequest();
+
+            var config = Configuration.get(payload.getRepository()).labelHandlers();
+
+            for (GHLabel label : pr.getLabels()) {
+                var handler = config.get(label.getName());
+                if (handler != null) {
+                    handler.onSynchronized(gitHub, pr, label);
+                }
+            }
+        }, GHAction.SYNCHRONIZE);
     }
 
     @Nullable

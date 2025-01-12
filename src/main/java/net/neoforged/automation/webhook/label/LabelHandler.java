@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.kohsuke.github.GHIssue;
 import org.kohsuke.github.GHLabel;
+import org.kohsuke.github.GHPullRequest;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 
@@ -17,7 +18,8 @@ public interface LabelHandler {
     Map<String, Class<? extends LabelHandler>> TYPES = Map.of(
             "lock", LockLabelHandler.class,
             "merge", MergeLabelHandler.class,
-            "keep-rebased", KeepRebasedHandler.class
+            "keep-rebased", KeepRebasedHandler.class,
+            "block", BlockPRHandler.class
     );
 
     default void onLabelAdded(GitHub gitHub, GHUser actor, GHIssue issue, GHLabel label) throws Exception {
@@ -25,6 +27,10 @@ public interface LabelHandler {
     }
 
     default void onLabelRemoved(GitHub gitHub, GHUser actor, GHIssue issue, GHLabel label) throws Exception {
+
+    }
+
+    default void onSynchronized(GitHub gitHub, GHPullRequest pullRequest, GHLabel label) throws Exception {
 
     }
 
