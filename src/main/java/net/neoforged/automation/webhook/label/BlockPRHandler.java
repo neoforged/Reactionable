@@ -13,15 +13,14 @@ public record BlockPRHandler() implements LabelHandler {
 
     @Override
     public void onLabelAdded(GitHub gitHub, GHUser actor, GHIssue issue, GHLabel label) throws Exception {
-        if (issue.getPullRequest() != null) {
-            block(issue.getRepository().getPullRequest(issue.getNumber()));
+        if (issue instanceof GHPullRequest pr) {
+            block(pr);
         }
     }
 
     @Override
     public void onLabelRemoved(GitHub gitHub, GHUser actor, GHIssue issue, GHLabel label) throws Exception {
-        if (issue.getPullRequest() != null) {
-            var pr = issue.getRepository().getPullRequest(issue.getNumber());
+        if (issue instanceof GHPullRequest pr) {
             issue.getRepository()
                     .createCheckRun(NAME, pr.getHead().getSha())
                     .withConclusion(GHCheckRun.Conclusion.SUCCESS)
