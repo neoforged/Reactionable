@@ -2,7 +2,7 @@ package net.neoforged.automation.command;
 
 import net.neoforged.automation.Configuration;
 import net.neoforged.automation.runner.PRActionRunner;
-import net.neoforged.automation.runner.PRRunUtils;
+import net.neoforged.automation.runner.GitRunner;
 import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.kohsuke.github.GHPullRequest;
@@ -33,7 +33,7 @@ public class FormattingCommand {
                 .command(baseCommand, command2)
                 .onFailed((gitHub, run) -> onFailure.accept(run))
                 .onFinished((gitHub, run, artifacts) -> {
-                    PRRunUtils.setupPR(pr, (dir, git) -> {
+                    GitRunner.setupPR(gh, pr, (dir, git, creds) -> {
                         List<String> deleted = new ArrayList<>();
                         try (var file = new ZipFile(artifacts.get("status").toFile())) {
                             var entry = file.entries().nextElement();
@@ -69,15 +69,8 @@ public class FormattingCommand {
 
                         git.add().addFilepattern(".").call();
 
-                        var botName = GitHubAccessor.getApp(gitHub).getSlug() + "[bot]";
-                        var user = gitHub.getUser(botName);
-                        var creds = new UsernamePasswordCredentialsProvider(
-                            botName,
-                            GitHubAccessor.getToken(gitHub)
-                        );
-
                         git.commit().setCredentialsProvider(creds)
-                                .setCommitter(botName, user.getId() + "+" + botName + "@users.noreply.github.com")
+                                .setCommitter(creds.getPerson())
                                 .setMessage("Update formatting")
                                 .setSign(false)
                                 .setNoVerify(true)

@@ -97,6 +97,10 @@ public class GitHubAccessor {
                 .send();
     }
 
+    public static GHUser getAuthor(GHPullRequest pr) {
+        return pr.user;
+    }
+
     public static String getToken(GitHub gitHub) throws IOException {
         return gitHub.getClient().getEncodedAuthorization().replace("Bearer ", "");
     }

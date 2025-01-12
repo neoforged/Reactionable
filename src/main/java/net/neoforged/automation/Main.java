@@ -3,6 +3,8 @@ package net.neoforged.automation;
 import com.mojang.brigadier.CommandDispatcher;
 import io.javalin.Javalin;
 import net.neoforged.automation.command.Commands;
+import net.neoforged.automation.db.Database;
+import net.neoforged.automation.discord.DiscordBot;
 import net.neoforged.automation.util.AuthUtil;
 import net.neoforged.automation.util.GHAction;
 import net.neoforged.automation.webhook.handler.AutomaticLabelHandler;
@@ -21,16 +23,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.net.http.HttpClient;
 import java.nio.file.Path;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 public class Main {
     private static final String NEOFORGE = "neoforged/NeoForge";
     public static final Logger LOGGER = LoggerFactory.getLogger("Reactionable");
+    public static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
+    public static final ScheduledExecutorService EXECUTOR = Executors.newScheduledThreadPool(2, Thread.ofPlatform().name("scheduled-", 0).factory());
 
-    public static void main(String[] args) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+    public static void main(String[] args) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException, InterruptedException {
         var startupConfig = StartupConfiguration.load(Path.of("config.properties"));
+
+        Database.init();
 
         var gitHub = new GitHubBuilder()
                 .withAuthorizationProvider(AuthUtil.githubApp(
@@ -51,6 +60,11 @@ public class Main {
                 .start(startupConfig.getInt("port", 8080));
 
         LOGGER.warn("Started up! Logged as {} on GitHub", GitHubAccessor.getApp(gitHub).getSlug());
+
+        var discordToken = startupConfig.get("discordToken", "");
+        if (!discordToken.isBlank()) {
+            DiscordBot.create(discordToken, gitHub, startupConfig, app);
+        }
     }
 
     public static WebhookHandler setupWebhookHandlers(StartupConfiguration startupConfig, WebhookHandler handler, Configuration.RepoLocation location) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {

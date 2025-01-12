@@ -10,6 +10,9 @@ repositories {
     maven {
         url = 'https://libraries.minecraft.net'
     }
+    maven {
+        url = 'https://m2.chew.pro/releases'
+    }
 }
 
 java.toolchain {
@@ -43,6 +46,14 @@ dependencies {
     implementation "com.apollographql.apollo:apollo-api:$apollo" // Apollo (GraphQL)
 
     implementation 'org.eclipse.jgit:org.eclipse.jgit:6.10.0.202406032230-r'
+
+    implementation('org.jdbi:jdbi3-core:3.32.0')
+    implementation('org.jdbi:jdbi3-sqlobject:3.32.0')
+    implementation('org.xerial:sqlite-jdbc:3.40.0.0')
+    implementation('org.flywaydb:flyway-core:8.5.13')
+
+    implementation 'net.dv8tion:JDA:5.2.2'
+    implementation 'pw.chew:jda-chewtils:2.0'
 }
 
 apollo {
