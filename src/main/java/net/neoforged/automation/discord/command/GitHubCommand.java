@@ -8,10 +8,13 @@ import net.neoforged.automation.discord.DiscordBot;
 import net.neoforged.automation.runner.GitRunner;
 import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.transport.RefSpec;
+import org.kohsuke.github.GHCache;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
+import org.kohsuke.github.GitHubAccessor;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class GitHubCommand extends BaseDiscordCommand {
     public GitHubCommand(GitHub gitHub) {
@@ -19,7 +22,8 @@ public class GitHubCommand extends BaseDiscordCommand {
         this.help = "GitHub automation commands";
 
         this.children = new SlashCommand[] {
-                new PushTag(gitHub)
+                new PushTag(gitHub),
+                new PurgeCaches(gitHub)
         };
     }
 
@@ -89,6 +93,45 @@ public class GitHubCommand extends BaseDiscordCommand {
             );
 
             event.getHook().sendMessage("Pushed tag `" + tag + "` to branch `" + branch + "`.").queue();
+        }
+    }
+
+    private static class PurgeCaches extends GitHubLinkedCommand {
+
+        private PurgeCaches(GitHub gitHub) {
+            super(gitHub);
+            this.name = "purge-caches";
+            this.help = "Purges action caches of a repository";
+
+            this.options = List.of(
+                    new OptionData(OptionType.STRING, "repo", "The repository whose caches to purge", true).setAutoComplete(true),
+                    new OptionData(OptionType.STRING, "key", "Regex that determines whether a cache should be purged", false)
+            );
+
+            addAutoCompleteHandler("repo", DiscordBot::suggestRepositories);
+        }
+
+        @Override
+        protected void execute(SlashCommandEvent event, GHUser githubUser) throws Exception {
+            var repo = gitHub.getRepository(event.optString("repo"));
+
+            checkUserAccess(repo, githubUser);
+
+            event.deferReply().queue();
+
+            var pattern = Pattern.compile(event.optString("key", ".*")).asMatchPredicate();
+
+            var caches = GitHubAccessor.getCaches(repo).toList();
+            int deleted = 0;
+
+            for (GHCache ghCache : caches) {
+                if (pattern.test(ghCache.getKey())) {
+                    ghCache.delete();
+                    deleted++;
+                }
+            }
+
+            event.getHook().sendMessage("Deleted %s out of %s caches.".formatted(deleted, caches.size())).queue();
         }
     }
 }

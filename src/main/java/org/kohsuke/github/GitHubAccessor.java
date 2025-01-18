@@ -105,6 +105,13 @@ public class GitHubAccessor {
         return gitHub.getClient().getEncodedAuthorization().replace("Bearer ", "");
     }
 
+    public static PagedIterable<GHCache> getCaches(GHRepository repository) throws IOException {
+        var req = repository.root().createRequest()
+                .method("GET")
+                .withUrlPath(repository.getApiTailUrl("/actions/caches"));
+        return new GHCachesIterable(repository, req);
+    }
+
     public static IssueEdit edit(GHIssue issue) {
         final Requester request = issue.root().createRequest().method("PATCH")
                 .inBody().withUrlPath(issue.getApiRoute());
