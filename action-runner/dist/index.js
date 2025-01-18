@@ -30653,18 +30653,30 @@ async function onMessage(ws, msg) {
     const json = JSON.parse(msg);
     if (json.type == "command") {
         const command = json.command;
-        console.log(`Executing "${command.join(' ')}"`);
+        console.error(`Executing "${command.join(' ')}\n"`);
         const cmdLine = command.shift();
         const executed = await exec.getExecOutput(cmdLine, command, {
             cwd: workspace
         });
         ws.send(executed.stdout);
-        console.log(`Command returned exit code ${executed.exitCode}`);
+        console.log(`\nCommand returned exit code ${executed.exitCode}`);
     }
     else if (json.type == "write-file") {
         const pth = path.resolve(workspace, json.path);
         await fs.writeFile(pth, json.content);
         console.log(`Written file to ${pth}`);
+        ws.send("");
+    }
+    else if (json.type == "read-file") {
+        const pth = path.resolve(workspace, json.path);
+        try {
+            const file = await fs.readFile(pth);
+            ws.send(JSON.stringify({ file: file.toString('base64') }));
+        }
+        catch (error) {
+            ws.send(JSON.stringify({ error: error }));
+        }
+        console.log(`Read file from ${pth}`);
     }
 }
 async function setupWs(url, msg) {
