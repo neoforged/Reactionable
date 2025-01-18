@@ -4,6 +4,8 @@ import * as path from 'path'
 
 import * as fs from 'fs/promises'
 
+import WebSocket from 'ws'
+
 let workspace: string;
 
 export async function run() {
@@ -18,8 +20,8 @@ export async function run() {
   );
 }
 
-export async function onMessage(ws: WebSocket, msg: MessageEvent) {
-  const json = JSON.parse(msg.data)
+export async function onMessage(ws: WebSocket, msg: any) {
+  const json = JSON.parse(msg)
 
   if (json.type == "command") {
     const command = json.command
@@ -41,17 +43,19 @@ export async function onMessage(ws: WebSocket, msg: MessageEvent) {
   }
 }
 
-export async function setupWs(url: string, msg: (ws: WebSocket, message: MessageEvent) => any): Promise<WebSocket> {
+export async function setupWs(url: string, msg: (ws: WebSocket, message: any) => any): Promise<WebSocket> {
   const ws = new WebSocket(url)
 
-  ws.onmessage = ev => msg(ws, ev)
+  ws.on('message', data => {
+    msg(ws, data)
+  })
 
-  ws.onopen = ev => {
+  ws.on('open', () => {
     console.error(`Connection opened... awaiting command`)
-  }
-  ws.onclose = ev => {
+  })
+  ws.on('close', () => {
     console.error(`Connection closed.`)
-  }
+  })
 
   return ws
 }

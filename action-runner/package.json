@@ -58,7 +58,8 @@
   "dependencies": {
     "@actions/core": "^1.11.1",
     "@actions/github": "^6.0.0",
-    "axios": "^1.7.9"
+    "axios": "^1.7.9",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@types/async": "^3.2.24",
