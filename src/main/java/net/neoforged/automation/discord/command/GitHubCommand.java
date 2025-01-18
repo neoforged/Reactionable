@@ -67,7 +67,7 @@ public class GitHubCommand extends BaseDiscordCommand {
                         git.commit()
                                 .setCredentialsProvider(creds)
                                 .setCommitter(creds.getPerson())
-                                .setMessage(event.optString("message") + "\nCo-authored-by: " + githubUser.getLogin() + " " + userEmail)
+                                .setMessage(event.optString("message") + "\nCo-authored-by: " + githubUser.getLogin() + " <" + userEmail + ">")
                                 .setSign(false)
                                 .setNoVerify(true)
                                 .call();
