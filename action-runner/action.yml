@@ -1,0 +1,11 @@
+name: 'pr-publishing'
+description: 'An action for publishing PRs'
+
+inputs:
+  endpoint:
+    description: Endpoint to login
+    required: true
+
+runs:
+  using: node20
+  main: dist/index.js
