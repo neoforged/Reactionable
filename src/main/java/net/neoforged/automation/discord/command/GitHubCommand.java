@@ -6,7 +6,9 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.neoforged.automation.discord.DiscordBot;
 import net.neoforged.automation.runner.GitRunner;
+import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.transport.RefSpec;
+import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 
 import java.util.List;
@@ -45,7 +47,7 @@ public class GitHubCommand extends BaseDiscordCommand {
         }
 
         @Override
-        protected void execute(SlashCommandEvent event, String githubUser) throws Exception {
+        protected void execute(SlashCommandEvent event, GHUser githubUser) throws Exception {
             var repo = gitHub.getRepository(event.optString("repo"));
 
             checkUserAccess(repo, githubUser);
@@ -60,10 +62,12 @@ public class GitHubCommand extends BaseDiscordCommand {
                     repo,
                     branch,
                     (dir, git, creds) -> {
+                        var userEmail = githubUser.getId() + "+" + githubUser.getLogin() + "@users.noreply.github.com";
+
                         git.commit()
                                 .setCredentialsProvider(creds)
                                 .setCommitter(creds.getPerson())
-                                .setMessage(event.optString("message"))
+                                .setMessage(event.optString("message") + "\nCo-authored-by: " + githubUser.getLogin() + " " + userEmail)
                                 .setSign(false)
                                 .setNoVerify(true)
                                 .call();
@@ -72,7 +76,7 @@ public class GitHubCommand extends BaseDiscordCommand {
                                 .setCredentialsProvider(creds)
                                 .setSigned(false)
                                 .setName(tag)
-                                .setTagger(creds.getPerson())
+                                .setTagger(new PersonIdent(githubUser.getLogin(), userEmail))
                                 .setAnnotated(true)
                                 .call();
 

@@ -5,6 +5,7 @@ import net.neoforged.automation.db.Database;
 import net.neoforged.automation.db.DiscordUsersDAO;
 import org.kohsuke.github.GHPermissionType;
 import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 
 public abstract class GitHubLinkedCommand extends BaseDiscordCommand {
@@ -21,8 +22,9 @@ public abstract class GitHubLinkedCommand extends BaseDiscordCommand {
             event.reply("Please link your GitHub account first.").queue();
             return;
         }
+
         try {
-            execute(event, github);
+            execute(event, gitHub.getUser(github));
         } catch (ValidationException v) {
             event.getHook().sendMessage(v.getMessage()).queue();
         } catch (Exception ex) {
@@ -30,9 +32,9 @@ public abstract class GitHubLinkedCommand extends BaseDiscordCommand {
         }
     }
 
-    protected abstract void execute(SlashCommandEvent event, String githubUser) throws Exception;
+    protected abstract void execute(SlashCommandEvent event, GHUser githubUser) throws Exception;
 
-    protected void checkUserAccess(GHRepository repo, String githubUser) throws Exception {
+    protected void checkUserAccess(GHRepository repo, GHUser githubUser) throws Exception {
         if (!repo.hasPermission(githubUser, GHPermissionType.WRITE)) {
             throw new ValidationException("You cannot push to this repo!");
         }
