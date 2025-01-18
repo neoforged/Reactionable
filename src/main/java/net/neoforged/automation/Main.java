@@ -1,10 +1,12 @@
 package net.neoforged.automation;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mojang.brigadier.CommandDispatcher;
 import io.javalin.Javalin;
 import net.neoforged.automation.command.Commands;
 import net.neoforged.automation.db.Database;
 import net.neoforged.automation.discord.DiscordBot;
+import net.neoforged.automation.runner.ActionRunnerHandler;
 import net.neoforged.automation.util.AuthUtil;
 import net.neoforged.automation.util.GHAction;
 import net.neoforged.automation.webhook.handler.AutomaticLabelHandler;
@@ -12,11 +14,11 @@ import net.neoforged.automation.webhook.handler.CommandHandler;
 import net.neoforged.automation.webhook.handler.ConfigurationUpdateHandler;
 import net.neoforged.automation.webhook.handler.LabelEventHandler;
 import net.neoforged.automation.webhook.handler.MergeConflictCheckHandler;
-import net.neoforged.automation.webhook.handler.PRActionRunnerHandler;
 import net.neoforged.automation.webhook.handler.ReleaseMessageHandler;
 import net.neoforged.automation.webhook.handler.neo.VersionLabelHandler;
 import net.neoforged.automation.webhook.impl.GitHubEvent;
 import net.neoforged.automation.webhook.impl.WebhookHandler;
+import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubAccessor;
 import org.kohsuke.github.GitHubBuilder;
 import org.slf4j.Logger;
@@ -35,6 +37,9 @@ public class Main {
     public static final Logger LOGGER = LoggerFactory.getLogger("Reactionable");
     public static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
     public static final ScheduledExecutorService EXECUTOR = Executors.newScheduledThreadPool(2, Thread.ofPlatform().name("scheduled-", 0).factory());
+    public static final ObjectMapper JSON = new ObjectMapper();
+
+    private static ActionRunnerHandler actionRunner;
 
     public static void main(String[] args) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException, InterruptedException {
         var startupConfig = StartupConfiguration.load(Path.of("config.properties"));
@@ -53,10 +58,16 @@ public class Main {
 
         var webhook = setupWebhookHandlers(startupConfig, new WebhookHandler(startupConfig, gitHub), location);
 
+        actionRunner = new ActionRunnerHandler(startupConfig.resolveUrl("serverUrl", "/runner/<id>/ws"), Executors.newThreadPerTaskExecutor(Thread.ofVirtual()
+                .name("action-runner-", 0)
+                .uncaughtExceptionHandler((t, e) -> LOGGER.error("Caught exception running action runner handler on thread {}:", t, e))
+                .factory()));
+
         var app = Javalin.create(cfg -> {
                     cfg.useVirtualThreads = true;
                 })
                 .post("/webhook", webhook)
+                .ws("/runner/<id>/ws", actionRunner)
                 .start(startupConfig.getInt("port", 8080));
 
         LOGGER.warn("Started up! Logged as {} on GitHub", GitHubAccessor.getApp(gitHub).getSlug());
@@ -65,6 +76,10 @@ public class Main {
         if (!discordToken.isBlank()) {
             DiscordBot.create(discordToken, gitHub, startupConfig, app);
         }
+    }
+
+    public static ActionRunnerHandler.Builder actionRunner(GitHub gitHub, Configuration.PRActions config) {
+        return actionRunner.builder(gitHub, config);
     }
 
     public static WebhookHandler setupWebhookHandlers(StartupConfiguration startupConfig, WebhookHandler handler, Configuration.RepoLocation location) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
@@ -79,7 +94,6 @@ public class Main {
                                 ghApp -> ghApp.getInstallationByOrganization(startupConfig.get("releasesGitHubAppOrganization", ""))
                         ))
                         .build()))
-                .registerFilteredHandler(GitHubEvent.WORKFLOW_RUN, new PRActionRunnerHandler(), GHAction.COMPLETED)
                 .registerFilteredHandler(GitHubEvent.ISSUE_COMMENT, new CommandHandler(Commands.register(new CommandDispatcher<>())), GHAction.CREATED)
                 .registerFilteredHandler(GitHubEvent.PULL_REQUEST, new AutomaticLabelHandler(), GHAction.OPENED, GHAction.REOPENED)
 

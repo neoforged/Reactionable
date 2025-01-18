@@ -33,4 +33,15 @@ public record StartupConfiguration(Properties properties) {
     public int getInt(String key, int defaultValue) {
         return Integer.parseInt(get(key, String.valueOf(defaultValue)));
     }
+
+    public String resolveUrl(String key, String path) {
+        var value = get(key, "");
+        if (!value.endsWith("/")) {
+            value = value + "/";
+        }
+        if (path.startsWith("/")) {
+            path = path.substring(1);
+        }
+        return value + path;
+    }
 }

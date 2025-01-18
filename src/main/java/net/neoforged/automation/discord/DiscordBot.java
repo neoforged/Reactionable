@@ -29,7 +29,7 @@ public class DiscordBot {
 
     public static void create(String token, GitHub gitHub, StartupConfiguration configuration, Javalin app) throws InterruptedException {
         var cfg = new OauthConfig(configuration.get("githubOauthClientId", ""), configuration.get("githubOauthClientSecret", ""),
-                configuration.get("serverUrl", "") + "/oauth2/discord/github");
+                configuration.resolveUrl("serverUrl", "/oauth2/discord/github"));
 
         var jda = JDABuilder.createLight(token)
                 .addEventListeners(createClient(gitHub, cfg))
