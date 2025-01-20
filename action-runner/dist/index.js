@@ -30663,6 +30663,9 @@ async function onMessage(ws, msg) {
     }
     else if (json.type == "write-file") {
         const pth = path.resolve(workspace, json.path);
+        await fs.mkdir(path.dirname(pth), {
+            recursive: true
+        });
         await fs.writeFile(pth, json.content);
         console.log(`Written file to ${pth}`);
         ws.send("");
