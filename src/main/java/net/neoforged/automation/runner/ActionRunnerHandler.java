@@ -28,13 +28,14 @@ public final class ActionRunnerHandler implements Consumer<WsConfig> {
         return new Builder(gitHub, config);
     }
 
-    public void queue(GitHub gitHub, Configuration.PRActions config, RunnerAction consumer, ActionExceptionHandler failure) throws IOException {
+    public void queue(GitHub gitHub, Configuration.PRActions config, RunnerOS os, RunnerAction consumer, ActionExceptionHandler failure) throws IOException {
         var id = UUID.randomUUID().toString();
         var repo = gitHub.getRepository(config.repository());
         var spl = config.workflow().split("@");
         repo.getWorkflow(spl[0])
                 .dispatch(spl[1], Map.of(
-                        "endpoint", wsBaseUrl.replace("<id>", id)
+                        "endpoint", wsBaseUrl.replace("<id>", id),
+                        "os", os.latest
                 ));
         this.pending.put(id, new PendingConfiguration(consumer, failure));
     }
@@ -78,6 +79,7 @@ public final class ActionRunnerHandler implements Consumer<WsConfig> {
     public class Builder {
         private final GitHub gitHub;
         private final Configuration.PRActions config;
+        private RunnerOS os = RunnerOS.UBUNTU;
 
         private RunnerAction runner;
         private ActionExceptionHandler onFailure;
@@ -85,6 +87,11 @@ public final class ActionRunnerHandler implements Consumer<WsConfig> {
         public Builder(GitHub gitHub, Configuration.PRActions config) {
             this.gitHub = gitHub;
             this.config = config;
+        }
+
+        public Builder os(RunnerOS os) {
+            this.os = os;
+            return this;
         }
 
         public Builder run(RunnerAction cons) {
@@ -106,7 +113,7 @@ public final class ActionRunnerHandler implements Consumer<WsConfig> {
         }
 
         public void queue() throws IOException {
-            ActionRunnerHandler.this.queue(gitHub, config, runner, onFailure);
+            ActionRunnerHandler.this.queue(gitHub, config, os, runner, onFailure);
         }
     }
 }
