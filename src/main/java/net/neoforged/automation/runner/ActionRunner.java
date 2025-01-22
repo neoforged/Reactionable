@@ -156,7 +156,9 @@ public class ActionRunner {
             final boolean isEscaped = i > 0 && chars[i - 1] == ESCAPE;
             final char ch = chars[i];
             if (ch == SPACE && enclosing == 0 && current != null) {
-                args.add(current.toString());
+                if (!current.toString().isBlank()) {
+                    args.add(current.toString());
+                }
                 current = null;
                 continue;
             }
@@ -180,7 +182,7 @@ public class ActionRunner {
             }
         }
 
-        if (current != null && enclosing == 0) {
+        if (current != null && enclosing == 0 && !current.toString().isBlank()) {
             args.add(current.toString());
         }
 

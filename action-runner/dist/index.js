@@ -30643,6 +30643,7 @@ const fs = __importStar(__nccwpck_require__(1943));
 const process_1 = __importDefault(__nccwpck_require__(932));
 const ws_1 = __importDefault(__nccwpck_require__(1354));
 let workspace;
+let currentCommand = null;
 async function run() {
     let githubWorkspacePath = process_1.default.env['GITHUB_WORKSPACE'];
     if (!githubWorkspacePath) {
@@ -30663,20 +30664,25 @@ async function onMessage(ws, msg) {
         const command = json.command;
         console.error(`Executing "${command.join(' ')}"\n`);
         const cmdLine = command.shift();
-        const executed = await exec.getExecOutput(cmdLine, command, {
+        currentCommand = exec.getExecOutput(cmdLine, command, {
             cwd: workspace
+        })
+            .then(executed => {
+            if (executed.exitCode != 0) {
+                ws.send(JSON.stringify({
+                    stderr: executed.stderr
+                }));
+            }
+            else {
+                ws.send(JSON.stringify({
+                    stdout: executed.stdout
+                }));
+            }
+            console.log(`\nCommand returned exit code ${executed.exitCode}`);
+            return executed;
+        }).finally(() => {
+            currentCommand = null;
         });
-        if (executed.exitCode != 0) {
-            ws.send(JSON.stringify({
-                stderr: executed.stderr
-            }));
-        }
-        else {
-            ws.send(JSON.stringify({
-                stdout: executed.stdout
-            }));
-        }
-        console.log(`\nCommand returned exit code ${executed.exitCode}`);
     }
     else if (json.type == "write-file") {
         const pth = path.resolve(workspace, json.path);

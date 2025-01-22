@@ -1,5 +1,6 @@
 import * as core from '@actions/core'
 import * as exec from '@actions/exec'
+import { ExecOutput } from '@actions/exec'
 import * as path from 'path'
 
 import * as fs from 'fs/promises'
@@ -9,6 +10,7 @@ import process from 'process'
 import WebSocket from 'ws'
 
 let workspace: string;
+let currentCommand: Promise<ExecOutput> | null = null;
 
 export async function run() {
   let githubWorkspacePath = process.env['GITHUB_WORKSPACE']
@@ -36,21 +38,26 @@ export async function onMessage(ws: WebSocket, msg: any) {
     console.error(`Executing "${command.join(' ')}"\n`)
 
     const cmdLine = command.shift()
-    const executed = await exec.getExecOutput(cmdLine, command, {
+    currentCommand = exec.getExecOutput(cmdLine, command, {
       cwd: workspace
     })
+    .then(executed => {
+      if (executed.exitCode != 0) {
+        ws.send(JSON.stringify({
+          stderr: executed.stderr
+        }))
+      } else {
+        ws.send(JSON.stringify({
+          stdout: executed.stdout
+        }))
+      }
 
-    if (executed.exitCode != 0) {
-      ws.send(JSON.stringify({
-        stderr: executed.stderr
-      }))
-    } else {
-      ws.send(JSON.stringify({
-        stdout: executed.stdout
-      }))
-    }
+      console.log(`\nCommand returned exit code ${executed.exitCode}`)
+      return executed
+    }).finally(() => {
+      currentCommand = null
+    })
 
-    console.log(`\nCommand returned exit code ${executed.exitCode}`)
   } else if (json.type == "write-file") {
     const pth = path.resolve(workspace, json.path)
     await fs.mkdir(path.dirname(pth), {
