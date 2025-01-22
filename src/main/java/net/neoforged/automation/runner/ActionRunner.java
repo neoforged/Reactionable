@@ -66,8 +66,8 @@ public class ActionRunner {
 
     public void clone(String url, String originName, String ref) {
         git("remote", "add", originName, url);
-        git("fetch", originName, ref);
-        git("checkout", ref);
+        git("fetch", originName, ref + ":temp", "--tags");
+        git("checkout", "temp");
     }
 
     public String diff() {
