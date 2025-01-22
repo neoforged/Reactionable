@@ -10,7 +10,6 @@ import net.neoforged.automation.command.api.GHCommandContext;
 import net.neoforged.automation.util.FunctionalInterfaces;
 
 import java.util.Arrays;
-import java.util.stream.Collectors;
 
 public class Commands {
     public static CommandDispatcher<GHCommandContext> register(CommandDispatcher<GHCommandContext> dispatcher) {
@@ -27,7 +26,7 @@ public class Commands {
                                 FormattingCommand.run(
                                         context.getSource().gitHub(), pr,
                                         config.prActions(), repoConfig,
-                                        Arrays.stream(tasks.split(" ")).map(t -> "./gradlew " + t).collect(Collectors.joining(" && ")),
+                                        Arrays.stream(tasks.split(" ")).map(t -> "./gradlew " + t).toList(),
                                         err -> {
                                             context.getSource().onError().run();
                                             try {

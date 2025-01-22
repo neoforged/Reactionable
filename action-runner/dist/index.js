@@ -30661,7 +30661,7 @@ async function onMessage(ws, msg) {
     }
     else if (json.type == "command") {
         const command = json.command;
-        console.error(`Executing "${command.join(' ')}\n"`);
+        console.error(`Executing "${command.join(' ')}"\n`);
         const cmdLine = command.shift();
         const executed = await exec.getExecOutput(cmdLine, command, {
             cwd: workspace
@@ -30698,6 +30698,10 @@ async function onMessage(ws, msg) {
         }
         console.log(`Read file from ${pth}`);
     }
+    else if (json.type == "log") {
+        console.log(json.message);
+        ws.send("{}");
+    }
 }
 async function setupWs(url, msg) {
     const ws = new ws_1.default(url);
@@ -30707,8 +30711,8 @@ async function setupWs(url, msg) {
     ws.on('open', () => {
         console.error(`Connection opened... awaiting command`);
     });
-    ws.on('close', () => {
-        console.error(`Connection closed.`);
+    ws.on('close', (code, reason) => {
+        console.error(`Connection closed with code ${code}: ${reason.toString()}`);
     });
     return ws;
 }

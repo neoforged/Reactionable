@@ -11,11 +11,12 @@ import org.kohsuke.github.GitHub;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.function.Consumer;
 
 public class FormattingCommand {
 
-    public static void run(GitHub gh, GHPullRequest pr, Configuration.PRActions actions, Configuration.RepoConfiguration repoConfiguration, String command, Consumer<GHWorkflowRun> onFailure, Runnable onSuccess) throws IOException {
+    public static void run(GitHub gh, GHPullRequest pr, Configuration.PRActions actions, Configuration.RepoConfiguration repoConfiguration, List<String> commands, Consumer<GHWorkflowRun> onFailure, Runnable onSuccess) throws IOException {
         Main.actionRunner(gh, actions)
                 .run(runner -> {
                     runner.git("init");
@@ -25,12 +26,14 @@ public class FormattingCommand {
                         runner.log("Running setup commands...");
                         for (String cmd : repoConfiguration.baseRunCommand().split("\n")) {
                             if (!cmd.isBlank()) {
-                                runner.exec(cmd.split(" "));
+                                runner.execFullCommand(cmd);
                             }
                         }
                     }
 
-                    runner.exec(command.split(" "));
+                    for (String command : commands) {
+                        runner.execFullCommand(command);
+                    }
 
                     var diff = runner.diff().getBytes(StandardCharsets.UTF_8);
 

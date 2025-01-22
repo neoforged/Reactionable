@@ -13,6 +13,8 @@ import org.kohsuke.github.GHWorkflowRun;
 import org.kohsuke.github.GitHub;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -107,6 +109,10 @@ public class ActionRunner {
         return res.get("stdout").asText();
     }
 
+    public String execFullCommand(String command) {
+        return exec(toArgs(command).toArray(String[]::new));
+    }
+
     public void log(String message) {
         sendAndExpect("log", n -> n.put("message", message));
     }
@@ -134,6 +140,53 @@ public class ActionRunner {
             nextMessage = null;
         }
     }
+
+    private static final char ESCAPE = (char) 92; // \\
+    private static final char SPACE = ' ';
+    private static final char QUOTES = '"';
+    private static final char SINGLE_QUOTES = '\'';
+
+    private static List<String> toArgs(String str) {
+        final List<String> args = new ArrayList<>();
+        StringBuilder current = null;
+        char enclosing = 0;
+
+        final char[] chars = str.toCharArray();
+        for (int i = 0; i < chars.length; i++) {
+            final boolean isEscaped = i > 0 && chars[i - 1] == ESCAPE;
+            final char ch = chars[i];
+            if (ch == SPACE && enclosing == 0 && current != null) {
+                args.add(current.toString());
+                current = null;
+                continue;
+            }
+
+            if (!isEscaped) {
+                if (ch == enclosing) {
+                    args.add(current.toString());
+                    enclosing = 0;
+                    current = null;
+                    continue;
+                } else if ((ch == QUOTES || ch == SINGLE_QUOTES) && (current == null || current.toString().isBlank())) {
+                    current = new StringBuilder();
+                    enclosing = ch;
+                    continue;
+                }
+            }
+
+            if (ch != ESCAPE) {
+                if (current == null) current = new StringBuilder();
+                current.append(ch);
+            }
+        }
+
+        if (current != null && enclosing == 0) {
+            args.add(current.toString());
+        }
+
+        return args;
+    }
+
 
     private static class ExecutionException extends RuntimeException {
         private ExecutionException(String msg) {

@@ -33,7 +33,7 @@ export async function onMessage(ws: WebSocket, msg: any) {
   } else if (json.type == "command") {
     const command = json.command
 
-    console.error(`Executing "${command.join(' ')}\n"`)
+    console.error(`Executing "${command.join(' ')}"\n`)
 
     const cmdLine = command.shift()
     const executed = await exec.getExecOutput(cmdLine, command, {
