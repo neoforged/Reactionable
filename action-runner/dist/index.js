@@ -30641,7 +30641,7 @@ const exec = __importStar(__nccwpck_require__(5236));
 const path = __importStar(__nccwpck_require__(6928));
 const fs = __importStar(__nccwpck_require__(1943));
 const process_1 = __importDefault(__nccwpck_require__(932));
-const ws_1 = __importDefault(__nccwpck_require__(1354));
+const ws_1 = __importStar(__nccwpck_require__(1354));
 let workspace;
 let currentCommand = null;
 async function run() {
@@ -30716,11 +30716,18 @@ async function setupWs(url, msg) {
     });
     ws.on('open', () => {
         console.error(`Connection opened... awaiting command`);
+        heartbeat(ws);
     });
     ws.on('close', (code, reason) => {
         console.error(`Connection closed with code ${code}: ${reason.toString()}`);
     });
     return ws;
+}
+function heartbeat(ws) {
+    if (ws.readyState == ws_1.OPEN) {
+        ws.ping();
+        setTimeout(() => heartbeat(ws), 10 * 1000);
+    }
 }
 function getRunURL() {
     return `${process_1.default.env['GITHUB_SERVER_URL']}/${process_1.default.env['GITHUB_REPOSITORY']}/actions/runs/${process_1.default.env['GITHUB_RUN_ID']}`;

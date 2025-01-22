@@ -7,7 +7,7 @@ import * as fs from 'fs/promises'
 
 import process from 'process'
 
-import WebSocket from 'ws'
+import WebSocket, {OPEN} from 'ws'
 
 let workspace: string;
 let currentCommand: Promise<ExecOutput> | null = null;
@@ -90,12 +90,20 @@ export async function setupWs(url: string, msg: (ws: WebSocket, message: any) =>
 
   ws.on('open', () => {
     console.error(`Connection opened... awaiting command`)
+    heartbeat(ws)
   })
   ws.on('close', (code, reason) => {
     console.error(`Connection closed with code ${code}: ${reason.toString()}`)
   })
 
   return ws
+}
+
+function heartbeat(ws: WebSocket) {
+  if (ws.readyState == OPEN) {
+    ws.ping()
+    setTimeout(() => heartbeat(ws), 10 * 1000)
+  }
 }
 
 export function getRunURL(): string {
