@@ -23,12 +23,12 @@ public record Configuration(
         Map<String, RepoConfiguration> repositories
 ) {
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record RepoConfiguration(Boolean enabled, @JsonDeserialize(contentUsing = LabelHandler.Deserializer.class) Map<String, LabelHandler> labelHandlers, @Nullable String baseRunCommand, String runUploadPattern) {
+    public record RepoConfiguration(Boolean enabled, @JsonDeserialize(contentUsing = LabelHandler.Deserializer.class) Map<String, LabelHandler> labelHandlers, @Nullable String baseRunCommand) {
         public RepoConfiguration {
             enabled = enabled == null || enabled;
             labelHandlers = labelHandlers == null ? Map.of() : labelHandlers;
         }
-        public static final RepoConfiguration DEFAULT = new RepoConfiguration(true, Map.of(), null, null);
+        public static final RepoConfiguration DEFAULT = new RepoConfiguration(true, Map.of(), null);
 
         @Nullable
         public <T extends LabelHandler> T getLabelOfType(String label, Class<T> type) {

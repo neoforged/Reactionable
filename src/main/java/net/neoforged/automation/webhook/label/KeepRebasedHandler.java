@@ -12,6 +12,8 @@ public class KeepRebasedHandler implements LabelHandler {
     public void onLabelAdded(GitHub gitHub, GHUser actor, GHIssue issue, GHLabel label) throws Exception {
         if (issue instanceof GHPullRequest pr) {
             MergeConflictCheckHandler.checkPR(gitHub, pr);
+        } else {
+            issue.removeLabels(label);
         }
     }
 }
