@@ -40,6 +40,13 @@ public final class ActionRunnerHandler implements Consumer<WsConfig> {
         this.pending.put(id, new PendingConfiguration(consumer, failure));
     }
 
+    public void close(ActionRunner runner, boolean forceShutdown) {
+        running.remove(runner.context.pathParam("id"));
+        if (forceShutdown && runner.execution != null && !runner.execution.isDone()) {
+            runner.execution.cancel(true);
+        }
+    }
+
     @Override
     public void accept(WsConfig wsConfig) {
         wsConfig.onConnect(wsConnectContext -> {
@@ -52,7 +59,7 @@ public final class ActionRunnerHandler implements Consumer<WsConfig> {
 
             wsConnectContext.session.setIdleTimeout(Duration.ofSeconds(0));
 
-            var runner = new ActionRunner(wsConnectContext);
+            var runner = new ActionRunner(wsConnectContext, this);
             running.put(id, runner);
             runner.queue(executor, cons.runner, cons.failure);
         });
@@ -69,9 +76,9 @@ public final class ActionRunnerHandler implements Consumer<WsConfig> {
 
         wsConfig.onClose(ctx -> {
             var id = ctx.pathParam("id");
-            var runner = running.remove(id);
-            if (runner != null && runner.execution != null && !runner.execution.isDone()) {
-                runner.execution.cancel(true);
+            var runner = running.get(id);
+            if (runner != null) {
+                close(runner, true);
             }
         });
     }

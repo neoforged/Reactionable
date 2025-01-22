@@ -23,15 +23,17 @@ import java.util.function.Consumer;
 public class ActionRunner {
     Future<?> execution;
 
-    private final WsContext context;
+    final WsContext context;
+    private final ActionRunnerHandler handler;
 
     private String repository;
     private long runId;
 
     private volatile CompletableFuture<ObjectNode> nextMessage;
 
-    public ActionRunner(WsContext context) {
+    public ActionRunner(WsContext context, ActionRunnerHandler handler) {
         this.context = context;
+        this.handler = handler;
     }
 
     void queue(ExecutorService executor, RunnerAction cons, ActionExceptionHandler onFailure) {
@@ -39,10 +41,12 @@ public class ActionRunner {
             try {
                 requestDetails();
                 cons.run(this);
+                close();
             } catch (Exception exception) {
                 Main.LOGGER.error("Action runner failed with exception: ", exception);
                 onFailure.accept(this, exception.getMessage());
                 context.closeSession(WsCloseStatus.SERVER_ERROR, "caught error");
+                handler.close(this, false);
             }
             return null;
         });
@@ -119,6 +123,7 @@ public class ActionRunner {
 
     public void close() {
         context.closeSession(WsCloseStatus.NORMAL_CLOSURE, "actions executed");
+        handler.close(this, false);
     }
 
     private ObjectNode sendAndExpect(String type) {
