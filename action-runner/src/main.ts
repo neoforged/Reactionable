@@ -21,15 +21,10 @@ export async function run() {
   }
   workspace = path.resolve(githubWorkspacePath)
 
-  const userHome = await determineUserHome()
-  await cache.restoreCache([path.resolve(userHome, '.gradle')], 'gradle-cache')
-
   await setupWs(
       core.getInput("endpoint"),
       onMessage
   );
-
-  await cache.saveCache([path.resolve(userHome, '.gradle')], 'gradle-cache')
 }
 
 export async function onMessage(ws: WebSocket, msg: any) {
@@ -38,7 +33,8 @@ export async function onMessage(ws: WebSocket, msg: any) {
   if (json.type == "details") {
     ws.send(JSON.stringify({
       repository: process.env['GITHUB_REPOSITORY'],
-      id: parseInt(process.env['GITHUB_RUN_ID']!)
+      id: parseInt(process.env['GITHUB_RUN_ID']!),
+      userHome: await determineUserHome()
     }))
   } else if (json.type == "command") {
     const command = json.command
@@ -86,6 +82,15 @@ export async function onMessage(ws: WebSocket, msg: any) {
     console.log(`Read file from ${pth}`)
   } else if (json.type == "log") {
     console.log(json.message)
+    ws.send("{}")
+  } else if (json.type == 'save-cache') {
+    const ch = await cache.saveCache(json.paths, json.key)
+    console.log(`Saved cache from ` + json.paths + ` as ` + json.key)
+    ws.send(JSON.stringify({id: ch}))
+  } else if (json.type == 'restore-cache') {
+    const ch = await cache.restoreCache(json.paths, json.key)
+    if (ch) console.log(`Restored cache to ` + json.paths)
+    else console.log(`No cache hit`)
     ws.send("{}")
   }
 }

@@ -75217,17 +75217,15 @@ async function run() {
         throw new Error('GITHUB_WORKSPACE not defined');
     }
     workspace = path.resolve(githubWorkspacePath);
-    const userHome = await determineUserHome();
-    await cache.restoreCache([path.resolve(userHome, '.gradle')], 'gradle-cache');
     await setupWs(core.getInput("endpoint"), onMessage);
-    await cache.saveCache([path.resolve(userHome, '.gradle')], 'gradle-cache');
 }
 async function onMessage(ws, msg) {
     const json = JSON.parse(msg);
     if (json.type == "details") {
         ws.send(JSON.stringify({
             repository: process_1.default.env['GITHUB_REPOSITORY'],
-            id: parseInt(process_1.default.env['GITHUB_RUN_ID'])
+            id: parseInt(process_1.default.env['GITHUB_RUN_ID']),
+            userHome: await determineUserHome()
         }));
     }
     else if (json.type == "command") {
@@ -75277,6 +75275,19 @@ async function onMessage(ws, msg) {
     }
     else if (json.type == "log") {
         console.log(json.message);
+        ws.send("{}");
+    }
+    else if (json.type == 'save-cache') {
+        const ch = await cache.saveCache(json.paths, json.key);
+        console.log(`Saved cache from ` + json.paths + ` as ` + json.key);
+        ws.send(JSON.stringify({ id: ch }));
+    }
+    else if (json.type == 'restore-cache') {
+        const ch = await cache.restoreCache(json.paths, json.key);
+        if (ch)
+            console.log(`Restored cache to ` + json.paths);
+        else
+            console.log(`No cache hit`);
         ws.send("{}");
     }
 }
