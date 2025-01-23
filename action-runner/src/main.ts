@@ -1,9 +1,11 @@
 import * as core from '@actions/core'
 import * as exec from '@actions/exec'
 import { ExecOutput } from '@actions/exec'
+import * as cache from '@actions/cache'
 import * as path from 'path'
 
 import * as fs from 'fs/promises'
+import * as os from 'os'
 
 import process from 'process'
 
@@ -18,10 +20,16 @@ export async function run() {
     throw new Error('GITHUB_WORKSPACE not defined')
   }
   workspace = path.resolve(githubWorkspacePath)
+
+  const userHome = await determineUserHome()
+  await cache.restoreCache([path.resolve(userHome, '.gradle')], 'gradle-cache')
+
   await setupWs(
       core.getInput("endpoint"),
       onMessage
   );
+
+  await cache.saveCache([path.resolve(userHome, '.gradle')], 'gradle-cache')
 }
 
 export async function onMessage(ws: WebSocket, msg: any) {
@@ -109,4 +117,17 @@ function heartbeat(ws: WebSocket) {
 
 export function getRunURL(): string {
   return `${process.env['GITHUB_SERVER_URL']}/${process.env['GITHUB_REPOSITORY']}/actions/runs/${process.env['GITHUB_RUN_ID']}`
+}
+
+async function determineUserHome(): Promise<string> {
+  const output = await exec.getExecOutput('java', ['-XshowSettings:properties', '-version'], {silent: true})
+  const regex = /user\.home = (\S*)/i
+  const found = output.stderr.match(regex)
+  if (found == null || found.length <= 1) {
+    core.info('Could not determine user.home from java -version output. Using os.homedir().')
+    return os.homedir()
+  }
+  const userHome = found[1]
+  core.debug(`Determined user.home from java -version output: '${userHome}'`)
+  return userHome
 }
