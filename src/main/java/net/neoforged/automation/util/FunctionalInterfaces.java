@@ -92,6 +92,10 @@ public class FunctionalInterfaces {
         T get() throws IOException;
     }
 
+    public interface ConsumerException<T> {
+        void accept(T value) throws IOException;
+    }
+
     @FunctionalInterface
     public interface CommandException<T> {
         int run(CommandContext<T> context) throws Exception;

@@ -2,6 +2,7 @@ package net.neoforged.automation.runner;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.javalin.util.function.ThrowingRunnable;
 import io.javalin.websocket.WsCloseStatus;
 import io.javalin.websocket.WsContext;
 import io.javalin.websocket.WsMessageContext;
@@ -19,6 +20,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 public class ActionRunner {
     Future<?> execution;
@@ -27,6 +29,7 @@ public class ActionRunner {
     private final ActionRunnerHandler handler;
 
     private String repository;
+    private String userHome;
     private long runId;
 
     private volatile CompletableFuture<ObjectNode> nextMessage;
@@ -41,7 +44,7 @@ public class ActionRunner {
             try {
                 requestDetails();
                 cons.run(this);
-                close();
+                stop();
             } catch (Exception exception) {
                 Main.LOGGER.error("Action runner failed with exception: ", exception);
                 onFailure.accept(this, exception.getMessage());
@@ -56,6 +59,7 @@ public class ActionRunner {
         var node = sendAndExpect("details");
         repository = node.get("repository").asText();
         runId = node.get("id").asLong();
+        userHome = node.get("userHome").asText();
     }
 
     public GHWorkflowRun getRun(GitHub gitHub) throws IOException {
@@ -77,8 +81,12 @@ public class ActionRunner {
     }
 
     public String diff() {
+        return diff(null);
+    }
+
+    public String diff(@Nullable String pattern) {
         git("add", ".");
-        return git("diff", "--cached");
+        return pattern == null || pattern.isBlank() ? git("diff", "--cached") : git("diff", "--cached", ":" + pattern);
     }
 
     public void writeFile(String path, String content) {
@@ -100,6 +108,46 @@ public class ActionRunner {
         return null;
     }
 
+    public <E extends Exception> void runCaching(String key, String path, Object keyComponent, ThrowingRunnable<E> runner) throws E {
+        restoreCache(key, path);
+        try {
+            runner.run();
+        } finally {
+            saveCache(key + keyComponent, path);
+        }
+    }
+
+    public void saveCache(String key, String... paths) {
+        sendAndExpect("save-cache", node -> {
+            node.put("key", key);
+            var arr = node.putArray("paths");
+            for (String pth : paths) {
+                arr.add(pth);
+            }
+        });
+    }
+
+    public void restoreCache(String key, String... paths) {
+        sendAndExpect("restore-cache", node -> {
+            node.put("key", key);
+            var arr = node.putArray("paths");
+            for (String pth : paths) {
+                arr.add(pth);
+            }
+        });
+    }
+
+    public String resolveHome(String path) {
+        var userHome = this.userHome;
+        if (!userHome.endsWith("/")) {
+            userHome = userHome + "/";
+        }
+        if (path.startsWith("/")) {
+            path = path.substring(1);
+        }
+        return userHome + path;
+    }
+
     public String exec(String... command) {
         var res = sendAndExpect("command", node -> {
             var arr = node.putArray("command");
@@ -114,14 +162,16 @@ public class ActionRunner {
     }
 
     public String execFullCommand(String command) {
-        return exec(toArgs(command).toArray(String[]::new));
+        return exec(toArgs(command).stream()
+                .filter(Predicate.not(String::isBlank))
+                .toArray(String[]::new));
     }
 
     public void log(String message) {
         sendAndExpect("log", n -> n.put("message", message));
     }
 
-    public void close() {
+    public void stop() {
         context.closeSession(WsCloseStatus.NORMAL_CLOSURE, "actions executed");
         handler.close(this, false);
     }
@@ -160,11 +210,15 @@ public class ActionRunner {
         for (int i = 0; i < chars.length; i++) {
             final boolean isEscaped = i > 0 && chars[i - 1] == ESCAPE;
             final char ch = chars[i];
-            if (ch == SPACE && enclosing == 0 && current != null) {
-                if (!current.toString().isBlank()) {
-                    args.add(current.toString());
+            if (ch == SPACE) {
+                if (enclosing != 0) {
+                    current.append(ch);
+                } else if (current != null) {
+                    if (!current.toString().isBlank()) {
+                        args.add(current.toString());
+                    }
+                    current = null;
                 }
-                current = null;
                 continue;
             }
 
@@ -174,7 +228,7 @@ public class ActionRunner {
                     enclosing = 0;
                     current = null;
                     continue;
-                } else if ((ch == QUOTES || ch == SINGLE_QUOTES) && (current == null || current.toString().isBlank())) {
+                } else if (enclosing == 0 && (ch == QUOTES || ch == SINGLE_QUOTES) && (current == null || current.toString().isBlank())) {
                     current = new StringBuilder();
                     enclosing = ch;
                     continue;

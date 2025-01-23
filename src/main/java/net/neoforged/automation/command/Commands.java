@@ -9,6 +9,7 @@ import net.neoforged.automation.Configuration;
 import net.neoforged.automation.command.api.GHCommandContext;
 import net.neoforged.automation.util.FunctionalInterfaces;
 
+import java.io.IOException;
 import java.util.Arrays;
 
 public class Commands {
@@ -41,6 +42,55 @@ public class Commands {
                                         }
                                 );
                             }
+                            return GHCommandContext.DEFERRED_RESPONSE;
+                        }))));
+
+        dispatcher.register(literal("backport")
+                .requires(Requirement.IS_PR.and(Requirement.IS_MAINTAINER))
+                .then(argument("branch", StringArgumentType.greedyString())
+                        .executes(FunctionalInterfaces.throwingCommand(context -> {
+                            var pr = context.getSource().pullRequest();
+
+                            var branch = context.getArgument("branch", String.class).trim();
+                            var comment = pr.comment("Backporting to `" + branch + "`...");
+
+                            boolean existed;
+                            try {
+                                context.getSource().repository().getBranch("backport/" + branch + "/" + pr.getNumber());
+                                existed = true;
+                            } catch (IOException ex) {
+                                existed = false;
+                            }
+
+                            boolean didExist = existed;
+
+                            BackportCommand.generatePatch(
+                                    context.getSource().gitHub(), pr,
+                                    Configuration.get(), branch,
+                                    (runner, err) -> {
+                                        context.getSource().onError().run();
+                                        try {
+                                            context.getSource().issue()
+                                                    .comment("Workflow failed: " + err + "\n" + runner.getRun(context.getSource().gitHub()).getHtmlUrl());
+                                        } catch (Exception ex) {
+                                            throw new RuntimeException(ex);
+                                        }
+                                    }, (newBranch) -> {
+                                        if (!didExist) {
+                                            var createdPr = context.getSource().repository()
+                                                    .createPullRequest(
+                                                            "Backport to " + branch + ": " + pr.getTitle(),
+                                                            newBranch, branch,
+                                                            "Backport of #" + pr.getNumber() + " to " + branch
+                                                    );
+                                            context.getSource().pullRequest()
+                                                    .comment("Created backport PR: #" + createdPr.getNumber());
+                                        }
+
+                                        context.getSource().onSuccess().run();
+                                        FunctionalInterfaces.ignoreExceptions(comment::delete);
+                                    }
+                            );
                             return GHCommandContext.DEFERRED_RESPONSE;
                         }))));
 

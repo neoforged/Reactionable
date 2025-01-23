@@ -14,6 +14,7 @@ import net.neoforged.automation.util.AuthUtil;
 import okio.Buffer;
 import okio.Okio;
 import org.apache.commons.io.input.ReaderInputStream;
+import org.eclipse.jgit.lib.PersonIdent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.kohsuke.github.function.InputStreamFunction;
@@ -127,6 +128,11 @@ public class GitHubAccessor {
                 request.send();
             }
         };
+    }
+
+    public static PersonIdent ident(GHUser githubUser) {
+        var userEmail = githubUser.getId() + "+" + githubUser.getLogin() + "@users.noreply.github.com";
+        return new PersonIdent(githubUser.getLogin(), userEmail);
     }
 
     public interface IssueEdit {

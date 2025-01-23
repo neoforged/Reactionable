@@ -28,14 +28,15 @@ public final class ActionRunnerHandler implements Consumer<WsConfig> {
         return new Builder(gitHub, config);
     }
 
-    public void queue(GitHub gitHub, Configuration.PRActions config, RunnerOS os, RunnerAction consumer, ActionExceptionHandler failure) throws IOException {
+    public void queue(GitHub gitHub, Configuration.PRActions config, RunnerOS os, String name, RunnerAction consumer, ActionExceptionHandler failure) throws IOException {
         var id = UUID.randomUUID().toString();
         var repo = gitHub.getRepository(config.repository());
         var spl = config.workflow().split("@");
         repo.getWorkflow(spl[0])
                 .dispatch(spl[1], Map.of(
                         "endpoint", wsBaseUrl.replace("<id>", id),
-                        "os", os.latest
+                        "os", os.latest,
+                        "name", name
                 ));
         this.pending.put(id, new PendingConfiguration(consumer, failure));
     }
@@ -57,7 +58,7 @@ public final class ActionRunnerHandler implements Consumer<WsConfig> {
                 return;
             }
 
-            wsConnectContext.session.setIdleTimeout(Duration.ofSeconds(0));
+            wsConnectContext.session.setMaxTextMessageSize(65536 * 2);
 
             var runner = new ActionRunner(wsConnectContext, this);
             running.put(id, runner);
@@ -87,6 +88,7 @@ public final class ActionRunnerHandler implements Consumer<WsConfig> {
         private final GitHub gitHub;
         private final Configuration.PRActions config;
         private RunnerOS os = RunnerOS.UBUNTU;
+        private String name = "Runner";
 
         private RunnerAction runner;
         private ActionExceptionHandler onFailure;
@@ -94,6 +96,11 @@ public final class ActionRunnerHandler implements Consumer<WsConfig> {
         public Builder(GitHub gitHub, Configuration.PRActions config) {
             this.gitHub = gitHub;
             this.config = config;
+        }
+
+        public Builder name(String name) {
+            this.name = name;
+            return this;
         }
 
         public Builder os(RunnerOS os) {
@@ -120,7 +127,7 @@ public final class ActionRunnerHandler implements Consumer<WsConfig> {
         }
 
         public void queue() throws IOException {
-            ActionRunnerHandler.this.queue(gitHub, config, os, runner, onFailure);
+            ActionRunnerHandler.this.queue(gitHub, config, os, name, runner, onFailure);
         }
     }
 }

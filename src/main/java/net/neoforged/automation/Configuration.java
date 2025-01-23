@@ -23,18 +23,29 @@ public record Configuration(
         Map<String, RepoConfiguration> repositories
 ) {
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record RepoConfiguration(Boolean enabled, @JsonDeserialize(contentUsing = LabelHandler.Deserializer.class) Map<String, LabelHandler> labelHandlers, @Nullable String baseRunCommand) {
+    public record RepoConfiguration(Boolean enabled, @JsonDeserialize(contentUsing = LabelHandler.Deserializer.class) Map<String, LabelHandler> labelHandlers, @Nullable String baseRunCommand, BackportConfiguration backport) {
         public RepoConfiguration {
             enabled = enabled == null || enabled;
             labelHandlers = labelHandlers == null ? Map.of() : labelHandlers;
+            backport = backport == null ? BackportConfiguration.DEFAULT : backport;
         }
-        public static final RepoConfiguration DEFAULT = new RepoConfiguration(true, Map.of(), null);
+        public static final RepoConfiguration DEFAULT = new RepoConfiguration(true, Map.of(), null, BackportConfiguration.DEFAULT);
 
         @Nullable
         public <T extends LabelHandler> T getLabelOfType(String label, Class<T> type) {
             var handler = labelHandlers.get(label);
             return type.isInstance(handler) ? (T) handler : null;
         }
+    }
+
+    public record BackportConfiguration(
+            List<String> preApplyGenCommands,
+            List<String> postApplyGenCommands,
+            List<String> preApplyCommands,
+            List<String> postApplyCommands,
+            @Nullable String diffPattern
+    ) {
+        public static final BackportConfiguration DEFAULT = new BackportConfiguration(List.of(), List.of(), List.of(), List.of(), null);
     }
 
     private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory().disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER).enable(YAMLGenerator.Feature.LITERAL_BLOCK_STYLE));
@@ -63,8 +74,12 @@ public record Configuration(
                 .stream().collect(Collectors.toMap(f -> f.getKey().toLowerCase(Locale.ROOT), Map.Entry::getValue)));
     }
 
+    public RepoConfiguration getRepo(GHRepository repository) {
+        return repositories().getOrDefault(repository.getFullName().toLowerCase(Locale.ROOT), RepoConfiguration.DEFAULT);
+    }
+
     public static RepoConfiguration get(GHRepository repository) {
-        return configuration.repositories().getOrDefault(repository.getFullName().toLowerCase(Locale.ROOT), RepoConfiguration.DEFAULT);
+        return configuration.getRepo(repository);
     }
 
     public static Configuration get() {

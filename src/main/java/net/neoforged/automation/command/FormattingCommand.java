@@ -38,7 +38,7 @@ public class FormattingCommand {
                     var diff = runner.diff().getBytes(StandardCharsets.UTF_8);
 
                     runner.log("Finished executing commands... shutting down runner.");
-                    runner.close();
+                    runner.stop();
 
                     GitRunner.setupPR(gh, pr, (dir, git, creds) -> {
                         git.apply().setPatch(new ByteArrayInputStream(diff)).call();
