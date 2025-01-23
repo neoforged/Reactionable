@@ -8,9 +8,11 @@ import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import net.neoforged.automation.Configuration;
 import net.neoforged.automation.command.api.GHCommandContext;
 import net.neoforged.automation.util.FunctionalInterfaces;
+import net.neoforged.automation.webhook.handler.AutomaticLabelHandler;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.stream.Collectors;
 
 public class Commands {
     public static CommandDispatcher<GHCommandContext> register(CommandDispatcher<GHCommandContext> dispatcher) {
@@ -85,12 +87,30 @@ public class Commands {
                                         }
                                     }, (newBranch) -> {
                                         if (!didExist) {
+                                            var body = new StringBuilder();
+
+                                            body.append("Backport of #").append(pr.getNumber()).append(" to ").append(branch);
+
+                                            var fixes = AutomaticLabelHandler.getClosingIssues(source.gitHub(), source.pullRequest())
+                                                    .stream()
+                                                    .map(n -> "Fixes #" + n.issueInfo.number + " on " + branch)
+                                                    .collect(Collectors.joining("\n"));
+
+                                            if (!fixes.isBlank()) {
+                                                body.append("\n\n").append(fixes);
+                                            }
+
                                             var createdPr = context.getSource().repository()
                                                     .createPullRequest(
                                                             "Backport to " + branch + ": " + pr.getTitle(),
-                                                            newBranch, branch,
-                                                            "Backport of #" + pr.getNumber() + " to " + branch
+                                                            newBranch, branch, body.toString()
                                                     );
+
+                                            createdPr.addLabels(source.pullRequest().getLabels()
+                                                    .stream()
+                                                    .filter(l -> !l.getName().startsWith("1."))
+                                                    .toList());
+
                                             context.getSource().pullRequest()
                                                     .comment("Created backport PR: #" + createdPr.getNumber());
                                         }
