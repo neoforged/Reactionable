@@ -67,7 +67,7 @@ public class BackportCommand {
                     runner.clone(pr.getRepository().getHtmlUrl() + ".git", "origin", branch);
 
                     runner.runCaching(
-                            "gradle-branch-" + pr.getRepository().getFullName() + "-" + pr.getNumber() + "-",
+                            "gradle-branch-" + pr.getRepository().getFullName() + "-" + branch + "-",
                             runner.resolveHome(".gradle/"),
                             "backport-" + pr.getNumber() + "-" + System.currentTimeMillis() / 1000,
                             () -> {
