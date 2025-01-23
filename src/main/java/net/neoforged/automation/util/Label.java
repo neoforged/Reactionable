@@ -7,8 +7,8 @@ import org.kohsuke.github.GitHubAccessor;
 import java.io.IOException;
 
 public enum Label {
-    NEEDS_REBASE("needs rebase", "This Pull Request needs to be rebased before being merged", "7F00FF")
-
+    NEEDS_REBASE("needs rebase", "This Pull Request needs to be rebased before being merged", "7F00FF"),
+    BACKPORT("backport", "Backport to an older version from a newer version", "1D76DB"),
     ;
 
     private final String name, description, colour;
