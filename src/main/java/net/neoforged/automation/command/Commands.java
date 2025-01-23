@@ -49,6 +49,7 @@ public class Commands {
                 .requires(Requirement.IS_PR.and(Requirement.IS_MAINTAINER))
                 .then(argument("branch", StringArgumentType.greedyString())
                         .executes(FunctionalInterfaces.throwingCommand(context -> {
+                            var source = context.getSource();
                             var pr = context.getSource().pullRequest();
 
                             var branch = context.getArgument("branch", String.class).trim();
@@ -70,8 +71,15 @@ public class Commands {
                                     (runner, err) -> {
                                         context.getSource().onError().run();
                                         try {
-                                            context.getSource().issue()
-                                                    .comment("Workflow failed: " + err + "\n" + runner.getRun(context.getSource().gitHub()).getHtmlUrl());
+                                            var message = new StringBuilder();
+                                            message.append("@").append(source.user().getLogin()).append(" backport to ")
+                                                            .append(branch).append(" failed.\n\n");
+
+                                            message.append("<details>\n\n<summary>Click for failure reason</summary>\n\n");
+
+                                            message.append(err).append("\n").append(runner.getRun(context.getSource().gitHub()).getHtmlUrl()).append("\n\n</details>");
+
+                                            source.issue().comment(message.toString());
                                         } catch (Exception ex) {
                                             throw new RuntimeException(ex);
                                         }
