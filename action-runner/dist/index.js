@@ -75206,6 +75206,7 @@ const exec = __importStar(__nccwpck_require__(5236));
 const cache = __importStar(__nccwpck_require__(5116));
 const path = __importStar(__nccwpck_require__(6928));
 const fs = __importStar(__nccwpck_require__(1943));
+const os = __importStar(__nccwpck_require__(857));
 const process_1 = __importDefault(__nccwpck_require__(932));
 const ws_1 = __importStar(__nccwpck_require__(1354));
 let workspace;
@@ -75224,7 +75225,7 @@ async function onMessage(ws, msg) {
         ws.send(JSON.stringify({
             repository: process_1.default.env['GITHUB_REPOSITORY'],
             id: parseInt(process_1.default.env['GITHUB_RUN_ID']),
-            userHome: '/home/runner'
+            userHome: await determineUserHome()
         }));
     }
     else if (json.type == "command") {
@@ -75312,6 +75313,18 @@ function heartbeat(ws) {
 }
 function getRunURL() {
     return `${process_1.default.env['GITHUB_SERVER_URL']}/${process_1.default.env['GITHUB_REPOSITORY']}/actions/runs/${process_1.default.env['GITHUB_RUN_ID']}`;
+}
+async function determineUserHome() {
+    const output = await exec.getExecOutput('java', ['-XshowSettings:properties', '-version'], { silent: true });
+    const regex = /user\.home = (\S*)/i;
+    const found = output.stderr.match(regex);
+    if (found == null || found.length <= 1) {
+        core.info('Could not determine user.home from java -version output. Using os.homedir().');
+        return os.homedir();
+    }
+    const userHome = found[1];
+    core.debug(`Determined user.home from java -version output: '${userHome}'`);
+    return userHome;
 }
 
 

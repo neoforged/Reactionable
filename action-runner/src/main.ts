@@ -34,7 +34,7 @@ export async function onMessage(ws: WebSocket, msg: any) {
     ws.send(JSON.stringify({
       repository: process.env['GITHUB_REPOSITORY'],
       id: parseInt(process.env['GITHUB_RUN_ID']!),
-      userHome: '/home/runner'
+      userHome: await determineUserHome()
     }))
   } else if (json.type == "command") {
     const command = json.command
@@ -122,4 +122,17 @@ function heartbeat(ws: WebSocket) {
 
 export function getRunURL(): string {
   return `${process.env['GITHUB_SERVER_URL']}/${process.env['GITHUB_REPOSITORY']}/actions/runs/${process.env['GITHUB_RUN_ID']}`
+}
+
+async function determineUserHome(): Promise<string> {
+  const output = await exec.getExecOutput('java', ['-XshowSettings:properties', '-version'], {silent: true})
+  const regex = /user\.home = (\S*)/i
+  const found = output.stderr.match(regex)
+  if (found == null || found.length <= 1) {
+    core.info('Could not determine user.home from java -version output. Using os.homedir().')
+    return os.homedir()
+  }
+  const userHome = found[1]
+  core.debug(`Determined user.home from java -version output: '${userHome}'`)
+  return userHome
 }
