@@ -84,6 +84,15 @@ export async function onMessage(ws: WebSocket, msg: any) {
     console.log(json.message)
     ws.send("{}")
   } else if (json.type == 'save-cache') {
+    for (const path in json.paths) {
+      try {
+        await fs.access(path, fs.constants.R_OK)
+      } catch {
+        ws.send("{}")
+        console.log(`Did not save cache as path ${path} doesn't exist`)
+        return
+      }
+    }
     const ch = await cache.saveCache(json.paths, json.key)
     console.log(`Saved cache from ` + json.paths + ` as ` + json.key)
     ws.send(JSON.stringify({id: ch}))
