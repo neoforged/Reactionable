@@ -30665,7 +30665,8 @@ async function onMessage(ws, msg) {
         console.error(`Executing "${command.join(' ')}"\n`);
         const cmdLine = command.shift();
         currentCommand = exec.getExecOutput(cmdLine, command, {
-            cwd: workspace
+            cwd: workspace,
+            ignoreReturnCode: true
         })
             .then(executed => {
             if (executed.exitCode != 0) {

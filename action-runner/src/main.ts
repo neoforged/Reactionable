@@ -39,7 +39,8 @@ export async function onMessage(ws: WebSocket, msg: any) {
 
     const cmdLine = command.shift()
     currentCommand = exec.getExecOutput(cmdLine, command, {
-      cwd: workspace
+      cwd: workspace,
+      ignoreReturnCode: true
     })
     .then(executed => {
       if (executed.exitCode != 0) {
