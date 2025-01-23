@@ -21,7 +21,7 @@ public class BackportCommand {
                 .name("Backport " + pr.getRepository().getFullName() + " #" + pr.getNumber() + " to " + branch + ": generate patch")
                 .run(runner -> {
                     runner.git("init");
-                    runner.clone(pr.getRepository().getHtmlUrl() + ".git", "origin", pr.getBase().getRef());
+                    runner.clone(pr.getRepository().getHtmlUrl() + ".git", "origin", pr.getBase().getSha());
 
                     runner.runCaching(
                             "gradle-pr-" + pr.getRepository().getFullName() + "-" + pr.getNumber() + "-",
