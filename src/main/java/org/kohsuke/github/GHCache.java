@@ -3,12 +3,16 @@ package org.kohsuke.github;
 import java.io.IOException;
 
 public class GHCache extends GitHubInteractiveObject {
-    private String key;
+    private String key, ref;
 
     private GHRepository repository;
 
     public String getKey() {
         return key;
+    }
+
+    public String getRef() {
+        return ref;
     }
 
     public void delete() throws IOException {

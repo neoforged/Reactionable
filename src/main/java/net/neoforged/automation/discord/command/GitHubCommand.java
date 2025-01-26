@@ -105,7 +105,8 @@ public class GitHubCommand extends BaseDiscordCommand {
 
             this.options = List.of(
                     new OptionData(OptionType.STRING, "repo", "The repository whose caches to purge", true).setAutoComplete(true),
-                    new OptionData(OptionType.STRING, "key", "Regex that determines whether a cache should be purged", false)
+                    new OptionData(OptionType.STRING, "key", "Key regex that determines whether a cache should be purged", false),
+                    new OptionData(OptionType.STRING, "ref", "Ref regex that determines whether a cache should be purged (starts with refs/heads/ or refs/pull/)", false)
             );
 
             addAutoCompleteHandler("repo", DiscordBot::suggestRepositories);
@@ -120,12 +121,13 @@ public class GitHubCommand extends BaseDiscordCommand {
             event.deferReply().queue();
 
             var pattern = Pattern.compile(event.optString("key", ".*")).asMatchPredicate();
+            var refPattern = Pattern.compile(event.optString("ref", ".*")).asMatchPredicate();
 
             var caches = GitHubAccessor.getCaches(repo).toList();
             int deleted = 0;
 
             for (GHCache ghCache : caches) {
-                if (pattern.test(ghCache.getKey())) {
+                if (pattern.test(ghCache.getKey()) && refPattern.test(ghCache.getRef())) {
                     ghCache.delete();
                     deleted++;
                 }
