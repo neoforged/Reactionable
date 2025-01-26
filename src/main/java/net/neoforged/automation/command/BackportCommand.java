@@ -81,7 +81,7 @@ public class BackportCommand {
                                 runner.saveCache("gradle", runner.resolveHome(".gradle/"));
 
                                 runner.writeFile("__diff", diff);
-                                runner.git("apply", "--ignore-whitespace", "--theirs", "--3way", "--recount", "-C0", "__diff");
+                                runner.git("apply", "--ignore-whitespace", "--recount", "-C0", "__diff");
                                 runner.exec("rm", "__diff");
 
                                 if (!backport.postApplyCommands().isEmpty()) {
