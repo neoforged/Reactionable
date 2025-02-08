@@ -250,7 +250,7 @@ public class ActionRunner {
     }
 
 
-    private static class ExecutionException extends RuntimeException {
+    public static class ExecutionException extends RuntimeException {
         private ExecutionException(String msg) {
             super(msg);
         }

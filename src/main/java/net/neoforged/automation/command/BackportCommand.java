@@ -3,6 +3,7 @@ package net.neoforged.automation.command;
 import net.neoforged.automation.Configuration;
 import net.neoforged.automation.Main;
 import net.neoforged.automation.runner.ActionExceptionHandler;
+import net.neoforged.automation.runner.ActionRunner;
 import net.neoforged.automation.runner.GitRunner;
 import net.neoforged.automation.util.FunctionalInterfaces;
 import org.eclipse.jgit.transport.RefSpec;
@@ -81,7 +82,11 @@ public class BackportCommand {
                                 runner.saveCache("gradle", runner.resolveHome(".gradle/"));
 
                                 runner.writeFile("__diff", diff);
-                                runner.git("apply", "--ignore-whitespace", "--recount", "-C0", "--reject", "__diff");
+                                try {
+                                    runner.git("apply", "--ignore-whitespace", "--recount", "-C0", "--reject", "__diff");
+                                } catch (ActionRunner.ExecutionException ignored) {
+                                    // We ignore this as even with --reject the command exists with status code 1
+                                }
                                 runner.exec("rm", "__diff");
 
                                 if (!backport.postApplyCommands().isEmpty()) {
