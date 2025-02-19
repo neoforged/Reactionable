@@ -106,10 +106,14 @@ public class Commands {
                                                             newBranch, branch, body.toString()
                                                     );
 
-                                            createdPr.addLabels(source.pullRequest().getLabels()
+                                            var labelsToAdd = source.pullRequest().getLabels()
                                                     .stream()
                                                     .filter(l -> !l.getName().startsWith("1."))
-                                                    .toList());
+                                                    .toList();
+
+                                            if (!labelsToAdd.isEmpty()) {
+                                                createdPr.addLabels(labelsToAdd);
+                                            }
 
                                             context.getSource().pullRequest()
                                                     .comment("Created backport PR: #" + createdPr.getNumber());
