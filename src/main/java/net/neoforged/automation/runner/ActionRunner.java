@@ -69,6 +69,10 @@ public class ActionRunner {
     public String git(String... command) {
         return exec(ArrayUtils.addFirst(command, "git"));
     }
+
+    public void setJavaVersion(int version) {
+        exec("echo", "JAVA_HOME=$(echo $JAVA_HOME_" + version + "_X64)", ">>", "$GITHUB_ENV");
+    }
     
     public void gradle(String... command) {
         exec(ArrayUtils.addFirst(command, "./gradlew"));
