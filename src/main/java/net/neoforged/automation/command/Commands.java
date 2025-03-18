@@ -102,7 +102,7 @@ public class Commands {
 
                                             var createdPr = context.getSource().repository()
                                                     .createPullRequest(
-                                                            "Backport to " + branch + ": " + pr.getTitle(),
+                                                            "Backport to " + branch + ": " + pr.getTitle().replaceFirst("^[\\[\\(][\\d\\.]+[\\]\\)]", ""),
                                                             newBranch, branch, body.toString()
                                                     );
 
