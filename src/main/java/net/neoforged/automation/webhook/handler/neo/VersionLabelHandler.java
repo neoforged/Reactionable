@@ -5,6 +5,7 @@ import net.neoforged.automation.webhook.impl.ActionBasedHandler;
 import org.kohsuke.github.GHEventPayload;
 import org.kohsuke.github.GHLabel;
 import org.kohsuke.github.GitHub;
+import org.kohsuke.github.GitHubAccessor;
 
 import java.net.URI;
 import java.util.Properties;
@@ -31,7 +32,10 @@ public class VersionLabelHandler implements ActionBasedHandler<GHEventPayload.Pu
                     .collect(Collectors.toList());
 
             if (!toRemoveLabels.remove(mcVer)) {
-                payload.getPullRequest().addLabels(mcVer);
+                // Only add the label if it exists, don't create a new one
+                if (GitHubAccessor.getLabel(payload.getRepository(), mcVer) != null) {
+                    payload.getPullRequest().addLabels(mcVer);
+                }
             }
 
             if (!toRemoveLabels.isEmpty()) {

@@ -165,4 +165,13 @@ public class GitHubAccessor {
             throw new RuntimeException(ex);
         }
     }
+
+    @Nullable
+    public static GHLabel getLabel(GHRepository repo, String name) {
+        try {
+            return repo.getLabel(name);
+        } catch (Exception ex) {
+            return null;
+        }
+    }
 }
