@@ -2,8 +2,11 @@ package net.neoforged.automation.discord;
 
 import com.jagrosh.jdautilities.command.CommandClient;
 import com.jagrosh.jdautilities.command.CommandClientBuilder;
+import com.jagrosh.jdautilities.command.SlashCommand;
+import com.jagrosh.jdautilities.command.SlashCommandEvent;
 import io.javalin.Javalin;
 import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
@@ -48,6 +51,21 @@ public class DiscordBot {
         builder.setOwnerId("0");
         builder.addSlashCommand(new GHLinkCommand(config.clientId, config.redirectUrl));
         builder.addSlashCommand(new GitHubCommand(gitHub));
+
+        builder.addSlashCommand(new SlashCommand() {
+            {
+                name = "shutdown";
+                help = "Shut down the bot";
+                userPermissions = new Permission[] { Permission.MANAGE_SERVER };
+            }
+
+            @Override
+            protected void execute(SlashCommandEvent event) {
+                event.reply("Shutting down...")
+                        .queue($ -> System.exit(0));
+            }
+        });
+
         return builder.build();
     }
 
