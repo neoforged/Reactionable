@@ -30,7 +30,7 @@ public record BlockPRHandler() implements LabelHandler {
     }
 
     @Override
-    public void onSynchronized(GitHub gitHub, GHPullRequest pullRequest, GHLabel label) throws Exception {
+    public void onSynchronized(GitHub gitHub, GHUser actor, GHPullRequest pullRequest, GHLabel label) throws Exception {
         block(pullRequest);
     }
 

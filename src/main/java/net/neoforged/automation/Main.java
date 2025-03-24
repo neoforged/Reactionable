@@ -29,8 +29,11 @@ import java.net.http.HttpClient;
 import java.nio.file.Path;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class Main {
     private static final String NEOFORGE = "neoforged/NeoForge";
@@ -98,5 +101,19 @@ public class Main {
                 .registerFilteredHandler(GitHubEvent.PULL_REQUEST, new AutomaticLabelHandler(), GHAction.OPENED, GHAction.REOPENED)
 
                 .registerFilteredHandler(GitHubEvent.PULL_REQUEST, new VersionLabelHandler().forRepository(NEOFORGE), GHAction.OPENED, GHAction.REOPENED);
+    }
+
+    /**
+     * Keep scheduling the runnable until it returns {@code true}.
+     */
+    public static void scheduleUntil(Callable<Boolean> runnable, int rateSeconds) {
+        AtomicReference<Callable<Void>> run = new AtomicReference<>();
+        run.set(() -> {
+            if (!runnable.call()) {
+                EXECUTOR.schedule(run.get(), rateSeconds, TimeUnit.SECONDS);
+            }
+            return null;
+        });
+        EXECUTOR.schedule(run.get(), rateSeconds, TimeUnit.SECONDS);
     }
 }

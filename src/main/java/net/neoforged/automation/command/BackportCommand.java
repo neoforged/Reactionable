@@ -6,7 +6,9 @@ import net.neoforged.automation.runner.ActionExceptionHandler;
 import net.neoforged.automation.runner.ActionRunner;
 import net.neoforged.automation.runner.GitRunner;
 import net.neoforged.automation.util.FunctionalInterfaces;
+import net.neoforged.automation.webhook.handler.AutomaticLabelHandler;
 import org.eclipse.jgit.transport.RefSpec;
+import org.jetbrains.annotations.Nullable;
 import org.kohsuke.github.GHPullRequest;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubAccessor;
@@ -14,9 +16,62 @@ import org.kohsuke.github.GitHubAccessor;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.stream.Collectors;
 
 public class BackportCommand {
-    public static void generatePatch(GitHub gh, GHPullRequest pr, Configuration configuration, String branch, ActionExceptionHandler exception, FunctionalInterfaces.ConsumerException<String> onSuccess) throws IOException {
+    public static void createOrUpdatePR(GitHub gh, GHPullRequest pr, Configuration configuration, String branch, ActionExceptionHandler exception,
+                                        FunctionalInterfaces.ConsumerException<@Nullable GHPullRequest> onFinished) throws IOException {
+        boolean existed;
+        try {
+            pr.getRepository().getBranch("backport/" + branch + "/" + pr.getNumber());
+            existed = true;
+        } catch (IOException ex) {
+            existed = false;
+        }
+
+        boolean didExist = existed;
+
+        generateAndApply(
+                gh, pr, configuration, branch, exception,
+                (newBranch) -> {
+                    if (!didExist) {
+                        var body = new StringBuilder();
+
+                        body.append("Backport of #").append(pr.getNumber()).append(" to ").append(branch);
+
+                        var fixes = AutomaticLabelHandler.getClosingIssues(gh, pr)
+                                .stream()
+                                .map(n -> "Fixes #" + n.issueInfo.number + " on " + branch)
+                                .collect(Collectors.joining("\n"));
+
+                        if (!fixes.isBlank()) {
+                            body.append("\n\n").append(fixes);
+                        }
+
+                        var createdPr = pr.getRepository()
+                                .createPullRequest(
+                                        "Backport to " + branch + ": " + pr.getTitle().replaceFirst("^[\\[\\(][\\d\\.]+[\\]\\)]", ""),
+                                        newBranch, branch, body.toString()
+                                );
+
+                        var labelsToAdd = pr.getLabels()
+                                .stream()
+                                .filter(l -> !l.getName().startsWith("1."))
+                                .toList();
+
+                        if (!labelsToAdd.isEmpty()) {
+                            createdPr.addLabels(labelsToAdd);
+                        }
+
+                        onFinished.accept(createdPr);
+                    } else {
+                        onFinished.accept(null);
+                    }
+                }
+        );
+    }
+
+    public static void generateAndApply(GitHub gh, GHPullRequest pr, Configuration configuration, String branch, ActionExceptionHandler exception, FunctionalInterfaces.ConsumerException<String> onSuccess) throws IOException {
         var backport = configuration.getRepo(pr.getRepository()).backport();
         Main.actionRunner(gh, configuration.prActions())
                 .name("Backport " + pr.getRepository().getFullName() + " #" + pr.getNumber() + " to " + branch + ": generate patch")

@@ -8,11 +8,8 @@ import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import net.neoforged.automation.Configuration;
 import net.neoforged.automation.command.api.GHCommandContext;
 import net.neoforged.automation.util.FunctionalInterfaces;
-import net.neoforged.automation.webhook.handler.AutomaticLabelHandler;
 
-import java.io.IOException;
 import java.util.Arrays;
-import java.util.stream.Collectors;
 
 public class Commands {
     public static CommandDispatcher<GHCommandContext> register(CommandDispatcher<GHCommandContext> dispatcher) {
@@ -57,17 +54,7 @@ public class Commands {
                             var branch = context.getArgument("branch", String.class).trim();
                             var comment = pr.comment("Backporting to `" + branch + "`...");
 
-                            boolean existed;
-                            try {
-                                context.getSource().repository().getBranch("backport/" + branch + "/" + pr.getNumber());
-                                existed = true;
-                            } catch (IOException ex) {
-                                existed = false;
-                            }
-
-                            boolean didExist = existed;
-
-                            BackportCommand.generatePatch(
+                            BackportCommand.createOrUpdatePR(
                                     context.getSource().gitHub(), pr,
                                     Configuration.get(), branch,
                                     (runner, err) -> {
@@ -75,7 +62,7 @@ public class Commands {
                                         try {
                                             var message = new StringBuilder();
                                             message.append("@").append(source.user().getLogin()).append(" backport to ")
-                                                            .append(branch).append(" failed.\n\n");
+                                                    .append(branch).append(" failed.\n\n");
 
                                             message.append("<details>\n\n<summary>Click for failure reason</summary>\n\n");
 
@@ -85,44 +72,16 @@ public class Commands {
                                         } catch (Exception ex) {
                                             throw new RuntimeException(ex);
                                         }
-                                    }, (newBranch) -> {
-                                        if (!didExist) {
-                                            var body = new StringBuilder();
-
-                                            body.append("Backport of #").append(pr.getNumber()).append(" to ").append(branch);
-
-                                            var fixes = AutomaticLabelHandler.getClosingIssues(source.gitHub(), source.pullRequest())
-                                                    .stream()
-                                                    .map(n -> "Fixes #" + n.issueInfo.number + " on " + branch)
-                                                    .collect(Collectors.joining("\n"));
-
-                                            if (!fixes.isBlank()) {
-                                                body.append("\n\n").append(fixes);
-                                            }
-
-                                            var createdPr = context.getSource().repository()
-                                                    .createPullRequest(
-                                                            "Backport to " + branch + ": " + pr.getTitle().replaceFirst("^[\\[\\(][\\d\\.]+[\\]\\)]", ""),
-                                                            newBranch, branch, body.toString()
-                                                    );
-
-                                            var labelsToAdd = source.pullRequest().getLabels()
-                                                    .stream()
-                                                    .filter(l -> !l.getName().startsWith("1."))
-                                                    .toList();
-
-                                            if (!labelsToAdd.isEmpty()) {
-                                                createdPr.addLabels(labelsToAdd);
-                                            }
-
-                                            context.getSource().pullRequest()
-                                                    .comment("Created backport PR: #" + createdPr.getNumber());
+                                    },
+                                    createdPr -> {
+                                        if (createdPr != null) {
+                                            context.getSource().pullRequest().comment("Created backport PR: #" + createdPr.getNumber());
                                         }
-
                                         context.getSource().onSuccess().run();
                                         FunctionalInterfaces.ignoreExceptions(comment::delete);
                                     }
                             );
+
                             return GHCommandContext.DEFERRED_RESPONSE;
                         }))));
 
