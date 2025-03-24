@@ -19,8 +19,13 @@ public record BackportHandler(String version) implements LabelHandler {
     @Override
     public void onLabelAdded(GitHub gitHub, GHUser actor, GHIssue issue, GHLabel label) throws Exception {
         if (issue instanceof GHPullRequest pr) {
-            RUNNING_PRS.add(pr.getNumber());
-            run(gitHub, pr, actor);
+            // We cannot backport to the base version
+            if (version().equals(pr.getBase().getRef())) {
+                pr.removeLabel(label.getName());
+            } else {
+                RUNNING_PRS.add(pr.getNumber());
+                run(gitHub, pr, actor, label);
+            }
         } else {
             issue.removeLabel(label.getName());
         }
@@ -30,7 +35,7 @@ public record BackportHandler(String version) implements LabelHandler {
     public void onSynchronized(GitHub gitHub, GHUser actor, GHPullRequest pullRequest, GHLabel label) throws Exception {
         Main.scheduleUntil(() -> {
             if (RUNNING_PRS.add(pullRequest.getNumber())) {
-                run(gitHub, pullRequest, actor);
+                run(gitHub, pullRequest, actor, label);
                 return true;
             }
 
@@ -38,7 +43,7 @@ public record BackportHandler(String version) implements LabelHandler {
         }, 30);
     }
 
-    private void run(GitHub gitHub, GHPullRequest pr, GHUser source) throws Exception {
+    private void run(GitHub gitHub, GHPullRequest pr, GHUser source, GHLabel label) throws Exception {
         BackportCommand.createOrUpdatePR(
                 gitHub, pr,
                 Configuration.get(), version,
@@ -65,7 +70,8 @@ public record BackportHandler(String version) implements LabelHandler {
                     if (createdPr != null) {
                         pr.comment("Created backport PR: #" + createdPr.getNumber());
                     }
-                }
+                },
+                Set.of(label.getName())
         );
     }
 }

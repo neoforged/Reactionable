@@ -10,6 +10,7 @@ import net.neoforged.automation.command.api.GHCommandContext;
 import net.neoforged.automation.util.FunctionalInterfaces;
 
 import java.util.Arrays;
+import java.util.Set;
 
 public class Commands {
     public static CommandDispatcher<GHCommandContext> register(CommandDispatcher<GHCommandContext> dispatcher) {
@@ -79,7 +80,8 @@ public class Commands {
                                         }
                                         context.getSource().onSuccess().run();
                                         FunctionalInterfaces.ignoreExceptions(comment::delete);
-                                    }
+                                    },
+                                    Set.of()
                             );
 
                             return GHCommandContext.DEFERRED_RESPONSE;

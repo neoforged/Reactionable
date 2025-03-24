@@ -16,11 +16,14 @@ import org.kohsuke.github.GitHubAccessor;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class BackportCommand {
     public static void createOrUpdatePR(GitHub gh, GHPullRequest pr, Configuration configuration, String branch, ActionExceptionHandler exception,
-                                        FunctionalInterfaces.ConsumerException<@Nullable GHPullRequest> onFinished) throws IOException {
+                                        FunctionalInterfaces.ConsumerException<@Nullable GHPullRequest> onFinished,
+                                        Set<String> ignoredLabels) throws IOException {
         boolean existed;
         try {
             pr.getRepository().getBranch("backport/" + branch + "/" + pr.getNumber());
@@ -56,7 +59,7 @@ public class BackportCommand {
 
                         var labelsToAdd = pr.getLabels()
                                 .stream()
-                                .filter(l -> !l.getName().startsWith("1."))
+                                .filter(l -> !l.getName().startsWith("1.") && !ignoredLabels.contains(l.getName()))
                                 .toList();
 
                         if (!labelsToAdd.isEmpty()) {
