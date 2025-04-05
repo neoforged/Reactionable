@@ -28,7 +28,7 @@ public record FileHostService(Path baseFolder, StartupConfiguration configuratio
             UUID.fromString(file); // this is lame validation
 
             context.result(Files.newInputStream(baseFolder.resolve(file)));
-            context.contentType(ContentType.APPLICATION_JSON);
+            context.contentType(ContentType.APPLICATION_JSON).header("Access-Control-Allow-Origin", "*");
         } catch (Exception ex) {
             context.status(HttpStatus.NOT_FOUND);
         }
