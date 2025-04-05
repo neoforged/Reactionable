@@ -10,6 +10,7 @@ import net.neoforged.automation.Main;
 import org.apache.commons.lang3.ArrayUtils;
 import org.eclipse.jgit.util.Base64;
 import org.jetbrains.annotations.Nullable;
+import org.kohsuke.github.GHPullRequest;
 import org.kohsuke.github.GHWorkflowRun;
 import org.kohsuke.github.GitHub;
 
@@ -111,6 +112,15 @@ public class ActionRunner {
         }
 
         return null;
+    }
+
+    public <E extends Exception> void runCachingGradle(GHPullRequest pr, ThrowingRunnable<E> runner) throws E {
+        runCaching(
+                "gradle-pr-" + pr.getRepository().getFullName() + "-" + pr.getNumber() + "-",
+                resolveHome(".gradle/"),
+                System.currentTimeMillis() / 1000,
+                runner
+        );
     }
 
     public <E extends Exception> void runCaching(String key, String path, Object keyComponent, ThrowingRunnable<E> runner) throws E {

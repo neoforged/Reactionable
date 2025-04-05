@@ -53,34 +53,33 @@ public class BenchmarkCommand {
                     runner.git("init");
                     runner.clone(pr.getRepository().getHtmlUrl() + ".git", "origin", target);
 
-                    runner.runCaching(
-                            "gradle-pr-" + pr.getRepository().getFullName() + "-" + pr.getNumber() + "-",
-                            runner.resolveHome(".gradle/"),
-                            System.currentTimeMillis() / 1000,
+                    runner.runCachingGradle(
+                            pr,
                             () -> {
                                 @Language("gradle") String init = """
-import org.gradle.api.tasks.JavaExec
-
 allprojects {
-    final replace = { JavaExec task, String key, String arg ->
-        while (task.args.contains(key)) {
-            int idx = task.args.indexOf(key)
-            task.args.remove(idx + 1)
-            task.args.remove(idx)
+    final replace = { List<String> args, String key, String arg ->
+        while (args.contains(key)) {
+            int idx = args.indexOf(key)
+            args.remove(idx + 1)
+            args.remove(idx)
         }
 
-        task.args.addAll([key, arg])
+        args.addAll([key, arg])
     }
 
     afterEvaluate {
         tasks.matching { it.name == 'jmh' }.configureEach {
             if (it instanceof JavaExec) {
-                replace(it, '-rff', rootProject.file('_benchmark.json').absolutePath)
-                replace(it, '-rf', 'json')
+                var newArgs = new ArrayList<>(it.args)
+                replace(newArgs, '-rff', rootProject.file('_benchmark.json').absolutePath)
+                replace(newArgs, '-rf', 'json')
+                it.setArgs(newArgs)
             }
         }
     }
 }
+
 """;
                                 listener.addStep("Running benchmark using gradle task `" + command + "`...");
                                 runner.writeFile("_benchmark_init.gradle", init);
