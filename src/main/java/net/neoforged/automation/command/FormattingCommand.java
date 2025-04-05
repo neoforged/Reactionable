@@ -22,8 +22,6 @@ public class FormattingCommand {
                     runner.git("init");
                     runner.clone(pr.getRepository().getHtmlUrl() + ".git", "origin", "pull/" + pr.getNumber() + "/head");
 
-                    runner.setJavaVersion(21);
-
                     if (repoConfiguration.baseRunCommand() != null) {
                         runner.log("Running setup commands...");
                         for (String cmd : repoConfiguration.baseRunCommand().split("\n")) {

@@ -1,14 +1,17 @@
 package net.neoforged.automation.command;
 
+import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
+import com.mojang.brigadier.context.CommandContext;
 import net.neoforged.automation.Configuration;
 import net.neoforged.automation.command.api.GHCommandContext;
 import net.neoforged.automation.util.FunctionalInterfaces;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Set;
 
@@ -87,7 +90,31 @@ public class Commands {
                             return GHCommandContext.DEFERRED_RESPONSE;
                         }))));
 
+        dispatcher.register(literal("benchmark")
+                .requires(Requirement.IS_PR.and(Requirement.IS_MAINTAINER))
+                .executes(FunctionalInterfaces.throwingCommand(context ->
+                        benchmark(context, context.getSource().pullRequest().getBase().getRef(), "jmh")))
+                .then(argument("against", StringArgumentType.word())
+                        .executes(FunctionalInterfaces.throwingCommand(context ->
+                                benchmark(context, context.getArgument("against", String.class), "jmh")))
+                        .then(argument("command", StringArgumentType.greedyString())
+                                .executes(FunctionalInterfaces.throwingCommand(context ->
+                                        benchmark(context, context.getArgument("against", String.class), context.getArgument("command", String.class)))))));
+
         return dispatcher;
+    }
+
+    private static int benchmark(CommandContext<GHCommandContext> context, String against, String command) throws IOException {
+        var source = context.getSource();
+        BenchmarkCommand.benchmark(
+                source.gitHub(), source.pullRequest(), Configuration.get(),
+                against, command, new CommandProgressListener(source, "Running benchmark..."),
+                compareUrl -> {
+                    source.issue().comment("@" + source.user().getLogin() + " benchmark complete. URL to comparison is available [here](" + compareUrl + ").");
+                    source.onSuccess().run();
+                }
+        );
+        return GHCommandContext.DEFERRED_RESPONSE;
     }
 
     private static ExtendedLiteralArgumentBuilder<GHCommandContext> literal(String name) {

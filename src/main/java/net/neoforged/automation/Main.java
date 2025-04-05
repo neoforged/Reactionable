@@ -42,6 +42,8 @@ public class Main {
     public static final ScheduledExecutorService EXECUTOR = Executors.newScheduledThreadPool(2, Thread.ofPlatform().name("scheduled-", 0).factory());
     public static final ObjectMapper JSON = new ObjectMapper();
 
+    public static FileHostService fileHostService;
+
     private static ActionRunnerHandler actionRunner;
 
     public static void main(String[] args) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException, InterruptedException {
@@ -61,6 +63,8 @@ public class Main {
 
         var webhook = setupWebhookHandlers(startupConfig, new WebhookHandler(startupConfig, gitHub), location);
 
+        fileHostService = new FileHostService(Path.of("files"), startupConfig);
+
         actionRunner = new ActionRunnerHandler(startupConfig.resolveUrl("serverUrl", "/runner/<id>/ws"), Executors.newThreadPerTaskExecutor(Thread.ofVirtual()
                 .name("action-runner-", 0)
                 .uncaughtExceptionHandler((t, e) -> LOGGER.error("Caught exception running action runner handler on thread {}:", t, e))
@@ -71,6 +75,9 @@ public class Main {
                 })
                 .post("/webhook", webhook)
                 .ws("/runner/<id>/ws", actionRunner)
+
+                .get("/file/<file>", fileHostService::get)
+
                 .start(startupConfig.getInt("port", 8080));
 
         LOGGER.warn("Started up! Logged as {} on GitHub", GitHubAccessor.getApp(gitHub).getSlug());
@@ -114,6 +121,6 @@ public class Main {
             }
             return null;
         });
-        EXECUTOR.schedule(run.get(), rateSeconds, TimeUnit.SECONDS);
+        EXECUTOR.schedule(run.get(), 0, TimeUnit.SECONDS);
     }
 }

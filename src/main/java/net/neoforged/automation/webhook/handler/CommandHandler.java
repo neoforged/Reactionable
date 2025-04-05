@@ -40,7 +40,7 @@ public record CommandHandler(CommandDispatcher<GHCommandContext> dispatcher) imp
                         .reason(ReportedContentClassifiers.RESOLVED)
                         .build()));
             }
-        });
+        }, command.command());
         var results = dispatcher.parse(command.command(), context);
 
         // If the command does not fully parse, then return

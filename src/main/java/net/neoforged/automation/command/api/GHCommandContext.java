@@ -8,10 +8,8 @@ import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 
-public record GHCommandContext(GitHub gitHub, GHEventPayload.IssueComment payload, Runnable onError, Runnable onSuccess) {
+public record GHCommandContext(GitHub gitHub, GHEventPayload.IssueComment payload, Runnable onError, Runnable onSuccess, String command) {
     public static final int DEFERRED_RESPONSE = 2;
 
     public GHUser user() {
