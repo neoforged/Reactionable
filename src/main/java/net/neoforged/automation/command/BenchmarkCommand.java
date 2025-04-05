@@ -11,32 +11,48 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class BenchmarkCommand {
     public static void benchmark(GitHub gh, GHPullRequest pr, Configuration configuration,
                                         String against, String command,
                                         CommandProgressListener listener,
                                         FunctionalInterfaces.ConsumerException<String> onSuccess) throws IOException {
+        AtomicReference<String> baseJson = new AtomicReference<>(),
+                prJson = new AtomicReference<>();
+
+        final FunctionalInterfaces.RunnableException checkComplete = () -> {
+            var baseJ = baseJson.get();
+            var prJ = prJson.get();
+            if (baseJ != null && prJ != null) {
+                listener.addStep("Uploading benchmarks...");
+
+                var baseUrl = Main.fileHostService.upload(baseJ);
+                var prUrl = Main.fileHostService.upload(prJ);
+
+                var url = "https://jmh.morethan.io/?sources=" + URLEncoder.encode(baseUrl, StandardCharsets.UTF_8) + "," + URLEncoder.encode(prUrl, StandardCharsets.UTF_8);
+
+                onSuccess.accept(url);
+            }
+        };
+
         listener.addStep("Running benchmark for base (`" + against + ")`...");
         runBenchmark(
                 gh, pr, configuration,
                 "base", against, command, listener,
-                baseJson -> {
-                    listener.addStep("Running benchmark for PR...");
-                    runBenchmark(
-                            gh, pr, configuration,
-                            "head", pr.getHead().getSha(), command, listener,
-                            prJson -> {
-                                listener.addStep("Uploading benchmarks...");
+                bj -> {
+                    baseJson.set(bj);
+                    checkComplete.run();
+                }
+        );
 
-                                var baseUrl = Main.fileHostService.upload(baseJson);
-                                var prUrl = Main.fileHostService.upload(prJson);
-
-                                var url = "https://jmh.morethan.io/?sources=" + URLEncoder.encode(baseUrl, StandardCharsets.UTF_8) + "," + URLEncoder.encode(prUrl, StandardCharsets.UTF_8);
-
-                                onSuccess.accept(url);
-                            }
-                    );
+        listener.addStep("Running benchmark for PR...");
+        runBenchmark(
+                gh, pr, configuration,
+                "head", pr.getHead().getSha(), command, listener,
+                pj -> {
+                    prJson.set(pj);
+                    checkComplete.run();
                 }
         );
     }
@@ -48,7 +64,7 @@ public class BenchmarkCommand {
         Main.actionRunner(gh, configuration.prActions())
                 .name("Benchmark " + pr.getRepository().getFullName() + " #" + pr.getNumber() + ": " + type)
                 .run(runner -> {
-                    listener.addStep("Started action runner " + runner.getRun(gh).getHtmlUrl());
+                    listener.addStep(type + ": Started action runner " + runner.getRun(gh).getHtmlUrl());
 
                     runner.git("init");
                     runner.clone(pr.getRepository().getHtmlUrl() + ".git", "origin", target);
@@ -81,13 +97,13 @@ allprojects {
 }
 
 """;
-                                listener.addStep("Running benchmark using gradle task `" + command + "`...");
+                                listener.addStep(type + ": Running benchmark using gradle task `" + command + "`...");
                                 runner.writeFile("_benchmark_init.gradle", init);
                                 runner.gradle("--init-script", "_benchmark_init.gradle", command);
                             }
                     );
 
-                    listener.addStep("Benchmark for " + type + " finished.");
+                    listener.addStep(type + ": Benchmark finished.");
 
                     onSuccess.accept(new String(Objects.requireNonNull(runner.readFile("_benchmark.json")), StandardCharsets.UTF_8));
                 })

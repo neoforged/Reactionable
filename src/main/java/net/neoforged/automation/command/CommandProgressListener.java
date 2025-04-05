@@ -24,7 +24,7 @@ public class CommandProgressListener {
         comment = context.issue().comment(header);
     }
 
-    public void addStep(String step) {
+    public synchronized void addStep(String step) {
         steps.add(step);
 
         var message = new StringBuilder(header).append("\n");
