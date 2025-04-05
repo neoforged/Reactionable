@@ -27,10 +27,8 @@ public record FileHostService(Path baseFolder, StartupConfiguration configuratio
             //noinspection ResultOfMethodCallIgnored
             UUID.fromString(file); // this is lame validation
 
-            try (var is = Files.newInputStream(baseFolder.resolve(file))) {
-                context.result(is);
-                context.contentType(ContentType.APPLICATION_JSON);
-            }
+            context.result(Files.newInputStream(baseFolder.resolve(file)));
+            context.contentType(ContentType.APPLICATION_JSON);
         } catch (Exception ex) {
             context.status(HttpStatus.NOT_FOUND);
         }
