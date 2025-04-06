@@ -58,7 +58,7 @@ public final class ActionRunnerHandler implements Consumer<WsConfig> {
                 return;
             }
 
-            wsConnectContext.session.setMaxTextMessageSize(65536 * 2);
+            wsConnectContext.session.setMaxTextMessageSize(65536 * 10);
 
             var runner = new ActionRunner(wsConnectContext, this);
             running.put(id, runner);
