@@ -3,6 +3,7 @@ import * as exec from '@actions/exec'
 import { ExecOutput } from '@actions/exec'
 import * as cache from '@actions/cache'
 import * as path from 'path'
+import * as semver from 'semver'
 
 import * as fs from 'fs/promises'
 import * as os from 'os'
@@ -93,7 +94,12 @@ export async function onMessage(ws: WebSocket, msg: any) {
       toEval = `exports.result = (()=>{${expression})()`
     }
 
-    ws.send(JSON.stringify({result: (nodeEval(toEval, 'expreval', json.variables, true) as any).result}))
+    let vars: Record<string, unknown> = {
+      'semver': semver
+    }
+    Object.keys(json.variables).forEach(key => vars[key] = json.variables[key])
+
+    ws.send(JSON.stringify({result: (nodeEval(toEval, 'expreval', vars, true) as any).result}))
   } else if (json.type == 'save-cache') {
     const ch = await cache.saveCache(json.paths, json.key)
     console.log(`Saved cache from ` + json.paths + ` as ` + json.key)
