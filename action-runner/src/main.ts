@@ -87,7 +87,13 @@ export async function onMessage(ws: WebSocket, msg: any) {
   } else if (json.type == 'eval') {
     const expression = json.expression
     console.log(`Evaluating '${expression}'`)
-    ws.send(JSON.stringify({result: (nodeEval(`exports.result = ${expression}`, 'expreval', json.variables) as any).result}))
+
+    let toEval = `exports.result = ${expression}`
+    if (expression.contains('return ')) {
+      toEval = `exports.result = (()=>{${expression})()`
+    }
+
+    ws.send(JSON.stringify({result: (nodeEval(toEval, 'expreval', json.variables, true) as any).result}))
   } else if (json.type == 'save-cache') {
     const ch = await cache.saveCache(json.paths, json.key)
     console.log(`Saved cache from ` + json.paths + ` as ` + json.key)

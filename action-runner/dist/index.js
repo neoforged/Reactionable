@@ -75426,7 +75426,11 @@ async function onMessage(ws, msg) {
     else if (json.type == 'eval') {
         const expression = json.expression;
         console.log(`Evaluating '${expression}'`);
-        ws.send(JSON.stringify({ result: (0, eval_1.default)(`exports.result = ${expression}`, 'expreval', json.variables).result }));
+        let toEval = `exports.result = ${expression}`;
+        if (expression.contains('return ')) {
+            toEval = `exports.result = (()=>{${expression})()`;
+        }
+        ws.send(JSON.stringify({ result: (0, eval_1.default)(toEval, 'expreval', json.variables, true).result }));
     }
     else if (json.type == 'save-cache') {
         const ch = await cache.saveCache(json.paths, json.key);
