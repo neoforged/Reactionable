@@ -75427,7 +75427,7 @@ async function onMessage(ws, msg) {
         const expression = json.expression;
         console.log(`Evaluating '${expression}'`);
         let toEval = `exports.result = ${expression}`;
-        if (expression.contains('return ')) {
+        if (expression.includes('return ')) {
             toEval = `exports.result = (()=>{${expression})()`;
         }
         ws.send(JSON.stringify({ result: (0, eval_1.default)(toEval, 'expreval', json.variables, true).result }));

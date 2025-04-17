@@ -89,7 +89,7 @@ export async function onMessage(ws: WebSocket, msg: any) {
     console.log(`Evaluating '${expression}'`)
 
     let toEval = `exports.result = ${expression}`
-    if (expression.contains('return ')) {
+    if (expression.includes('return ')) {
       toEval = `exports.result = (()=>{${expression})()`
     }
 
