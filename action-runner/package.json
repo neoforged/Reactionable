@@ -60,6 +60,7 @@
     "@actions/core": "^1.11.1",
     "@actions/github": "^6.0.0",
     "axios": "^1.7.9",
+    "eval": "^0.1.8",
     "ws": "^8.18.0"
   },
   "devDependencies": {

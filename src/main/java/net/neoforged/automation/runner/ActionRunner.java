@@ -17,6 +17,7 @@ import org.kohsuke.github.GitHub;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -150,6 +151,15 @@ public class ActionRunner {
                 arr.add(pth);
             }
         });
+    }
+
+    public boolean eval(String expression, Map<String, ?> variables) {
+        var res = sendAndExpect("eval", o -> {
+            o.put("expression", expression);
+            var vars = o.putObject("variables");
+            variables.forEach(vars::putPOJO);
+        });
+        return res.get("result").asBoolean();
     }
 
     public String resolveHome(String path) {

@@ -43211,6 +43211,104 @@ module.exports = DotObject
 
 /***/ }),
 
+/***/ 3070:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+/* module decorator */ module = __nccwpck_require__.nmd(module);
+var vm = __nccwpck_require__(9154)
+var isBuffer = Buffer.isBuffer
+
+var requireLike = __nccwpck_require__(8736)
+
+function merge (a, b) {
+  if (!a || !b) return a
+  var keys = Object.keys(b)
+  for (var k, i = 0, n = keys.length; i < n; i++) {
+    k = keys[i]
+    a[k] = b[k]
+  }
+  return a
+}
+
+var vmGlobals = new vm.Script('Object.getOwnPropertyNames(globalThis)')
+  .runInNewContext()
+
+// Return the exports/module.exports variable set in the content
+// content (String|VmScript): required
+module.exports = function (content, filename, scope, includeGlobals) {
+
+  if (typeof filename !== 'string') {
+    if (typeof filename === 'object') {
+      includeGlobals = scope
+      scope = filename
+      filename = ''
+    } else if (typeof filename === 'boolean') {
+      includeGlobals = filename
+      scope = {}
+      filename = ''
+    }
+  }
+
+  // Expose standard Node globals
+  var sandbox = {}
+  var exports = {}
+  var _filename = filename || module.parent.filename;
+
+  if (includeGlobals) {
+    // Merge enumerable variables on `global`
+    merge(sandbox, global)
+    // Merge all non-enumerable variables on `global`, including console (v10+),
+    // process (v12+), URL, etc. We first filter out anything that's already in
+    // the VM scope (i.e. those in the ES standard) so we don't have two copies
+    Object.getOwnPropertyNames(global).forEach((name) => {
+      if (!vmGlobals.includes(name)) {
+        sandbox[name] = global[name]
+      }
+    })
+    // `console` exists in VM scope, but we want to pipe the output to the
+    // process'
+    sandbox.console = console
+    sandbox.require = requireLike(_filename)
+  }
+
+  if (typeof scope === 'object') {
+    merge(sandbox, scope)
+  }
+
+  sandbox.exports = exports
+  sandbox.module = {
+    exports: exports,
+    filename: _filename,
+    id: _filename,
+    parent: module.parent,
+    require: sandbox.require || requireLike(_filename)
+  }
+  sandbox.global = sandbox
+
+  var options = {
+    filename: filename,
+    displayErrors: false
+  }
+
+  if (isBuffer(content)) {
+    content = content.toString()
+  }
+
+  // Evalutate the content with the given scope
+  if (typeof content === 'string') {
+    var stringScript = content.replace(/^\#\!.*/, '')
+    var script = new vm.Script(stringScript, options)
+    script.runInNewContext(sandbox, options)
+  } else {
+    content.runInNewContext(sandbox, options)
+  }
+
+  return sandbox.module.exports
+}
+
+
+/***/ }),
+
 /***/ 9741:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -45878,6 +45976,53 @@ function plural(ms, msAbs, n, name) {
   var isPlural = msAbs >= n * 1.5;
   return Math.round(ms / n) + ' ' + name + (isPlural ? 's' : '');
 }
+
+
+/***/ }),
+
+/***/ 8736:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+var Module = __nccwpck_require__(3339);
+var dirname = (__nccwpck_require__(6928).dirname);
+
+module.exports = function requireLike(path, uncached) {
+  var parentModule = new Module(path);
+  parentModule.filename = path;
+  parentModule.paths = Module._nodeModulePaths(dirname(path));
+
+  function requireLike(file) {
+    var cache = Module._cache;
+    if (uncached) {
+      Module._cache = {};
+    }
+
+    var exports = Module._load(file, parentModule);
+    Module._cache = cache;
+
+    return exports;
+  };
+
+
+  requireLike.resolve = function(request) {
+    var resolved = Module._resolveFilename(request, parentModule);
+    // Module._resolveFilename returns a string since node v0.6.10,
+    // it used to return an array prior to that
+    return (resolved instanceof Array) ? resolved[1] : resolved;
+  }
+
+  try {
+    requireLike.paths = require.paths;
+  } catch (e) {
+    //require.paths was deprecated in node v0.5.x
+    //it now throws an exception when called
+  }
+  requireLike.main = process.mainModule;
+  requireLike.extensions = require.extensions;
+  requireLike.cache = require.cache;
+
+  return requireLike;
+};
 
 
 /***/ }),
@@ -75209,6 +75354,7 @@ const fs = __importStar(__nccwpck_require__(1943));
 const os = __importStar(__nccwpck_require__(857));
 const process_1 = __importDefault(__nccwpck_require__(932));
 const ws_1 = __importStar(__nccwpck_require__(1354));
+const eval_1 = __importDefault(__nccwpck_require__(3070));
 let workspace;
 let currentCommand = null;
 async function run() {
@@ -75276,6 +75422,11 @@ async function onMessage(ws, msg) {
     else if (json.type == "log") {
         console.log(json.message);
         ws.send("{}");
+    }
+    else if (json.type == 'eval') {
+        const expression = json.expression;
+        console.log(`Evaluating '${expression}'`);
+        ws.send(JSON.stringify({ result: (0, eval_1.default)(`exports.result = ${expression}`, 'expreval', json.variables).result }));
     }
     else if (json.type == 'save-cache') {
         const ch = await cache.saveCache(json.paths, json.key);
@@ -75447,6 +75598,14 @@ module.exports = require("http2");
 
 "use strict";
 module.exports = require("https");
+
+/***/ }),
+
+/***/ 3339:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("module");
 
 /***/ }),
 
@@ -75639,6 +75798,14 @@ module.exports = require("util");
 
 "use strict";
 module.exports = require("util/types");
+
+/***/ }),
+
+/***/ 9154:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("vm");
 
 /***/ }),
 
@@ -86545,8 +86712,8 @@ module.exports = /*#__PURE__*/JSON.parse('{"name":"@actions/cache","version":"4.
 /******/ 		}
 /******/ 		// Create a new module (and put it into the cache)
 /******/ 		var module = __webpack_module_cache__[moduleId] = {
-/******/ 			// no module.id needed
-/******/ 			// no module.loaded needed
+/******/ 			id: moduleId,
+/******/ 			loaded: false,
 /******/ 			exports: {}
 /******/ 		};
 /******/ 	
@@ -86559,11 +86726,23 @@ module.exports = /*#__PURE__*/JSON.parse('{"name":"@actions/cache","version":"4.
 /******/ 			if(threw) delete __webpack_module_cache__[moduleId];
 /******/ 		}
 /******/ 	
+/******/ 		// Flag the module as loaded
+/******/ 		module.loaded = true;
+/******/ 	
 /******/ 		// Return the exports of the module
 /******/ 		return module.exports;
 /******/ 	}
 /******/ 	
 /************************************************************************/
+/******/ 	/* webpack/runtime/node module decorator */
+/******/ 	(() => {
+/******/ 		__nccwpck_require__.nmd = (module) => {
+/******/ 			module.paths = [];
+/******/ 			if (!module.children) module.children = [];
+/******/ 			return module;
+/******/ 		};
+/******/ 	})();
+/******/ 	
 /******/ 	/* webpack/runtime/compat */
 /******/ 	
 /******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";

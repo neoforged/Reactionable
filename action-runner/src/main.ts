@@ -10,6 +10,7 @@ import * as os from 'os'
 import process from 'process'
 
 import WebSocket, {OPEN} from 'ws'
+import nodeEval from "eval";
 
 let workspace: string;
 let currentCommand: Promise<ExecOutput> | null = null;
@@ -83,6 +84,10 @@ export async function onMessage(ws: WebSocket, msg: any) {
   } else if (json.type == "log") {
     console.log(json.message)
     ws.send("{}")
+  } else if (json.type == 'eval') {
+    const expression = json.expression
+    console.log(`Evaluating '${expression}'`)
+    ws.send(JSON.stringify({result: (nodeEval(`exports.result = ${expression}`, 'expreval', json.variables) as any).result}))
   } else if (json.type == 'save-cache') {
     const ch = await cache.saveCache(json.paths, json.key)
     console.log(`Saved cache from ` + json.paths + ` as ` + json.key)

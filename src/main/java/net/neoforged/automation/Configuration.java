@@ -1,22 +1,23 @@
 package net.neoforged.automation;
 
-import com.fasterxml.jackson.annotation.JacksonInject;
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.databind.BeanProperty;
 import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.deser.ContextualDeserializer;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
+import net.neoforged.automation.runner.ActionRunner;
 import net.neoforged.automation.util.Util;
 import net.neoforged.automation.webhook.label.LabelHandler;
 import org.jetbrains.annotations.Nullable;
@@ -136,10 +137,10 @@ public record Configuration(
     }
 
     public record BackportConfiguration(
-            List<String> preApplyGenCommands,
-            List<String> postApplyGenCommands,
-            List<String> preApplyCommands,
-            List<String> postApplyCommands,
+            List<ConditionalValue<String>> preApplyGenCommands,
+            List<ConditionalValue<String>> postApplyGenCommands,
+            List<ConditionalValue<String>> preApplyCommands,
+            List<ConditionalValue<String>> postApplyCommands,
             @Nullable String diffPattern
     ) {
         public static final BackportConfiguration DEFAULT = new BackportConfiguration(List.of(), List.of(), List.of(), List.of(), null);
@@ -194,4 +195,60 @@ public record Configuration(
     public record Commands(List<String> prefixes, boolean reactToComment, boolean minimizeComment) {}
 
     public record PRActions(String repository, String workflow) {}
+
+    @JsonDeserialize(using = ConditionalValue.DeSer.class)
+    public static final class ConditionalValue<T> {
+        @Nullable
+        private final String condition;
+        private final T _if, _else;
+
+        public ConditionalValue(@Nullable String condition, T _if, T _else) {
+            this.condition = condition;
+            this._if = _if;
+            this._else = _else;
+        }
+
+        @Nullable
+        public T get(ActionRunner runner, Map<String, ?> variables) {
+            if (condition == null) return _if;
+            if (runner.eval(condition, variables)) {
+                return _if;
+            } else {
+                return _else;
+            }
+        }
+
+        public static final class DeSer extends JsonDeserializer<ConditionalValue<?>> implements ContextualDeserializer {
+            private JavaType valueType;
+
+            @Override
+            public JsonDeserializer<?> createContextual(DeserializationContext ctxt, BeanProperty property) {
+                JavaType wrapperType = property.getType();
+                JavaType valueType = contained(wrapperType);
+                DeSer deserializer = new DeSer();
+                deserializer.valueType = valueType;
+                return deserializer;
+            }
+
+            @Override
+            public ConditionalValue<?> deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+                if (p.hasToken(JsonToken.START_OBJECT)) {
+                    var node = p.readValueAs(ObjectNode.class);
+                    return new ConditionalValue<>(
+                            node.get("if").asText(),
+                            ctxt.readTreeAsValue(node.get("then"), valueType),
+                            node.has("else") ? ctxt.readTreeAsValue(node.get("else"), valueType) : null
+                    );
+                }
+                return new ConditionalValue<>(null, ctxt.readValue(p, valueType), null);
+            }
+
+            private static JavaType contained(JavaType tp) {
+                if (tp.isCollectionLikeType()) {
+                    return contained(tp.containedType(0));
+                }
+                return tp.containedType(0);
+            }
+        }
+    }
 }

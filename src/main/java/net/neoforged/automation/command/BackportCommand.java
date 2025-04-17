@@ -16,7 +16,7 @@ import org.kohsuke.github.GitHubAccessor;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -87,10 +87,15 @@ public class BackportCommand {
                             runner.resolveHome(".gradle/"),
                             System.currentTimeMillis() / 1000,
                             () -> {
+                                var vars = Map.of(
+                                        "baseBranch", pr.getBase().getRef(),
+                                        "targetBranch", branch
+                                );
+
                                 if (!backport.preApplyGenCommands().isEmpty()) {
                                     runner.log("Running pre-apply commands...");
-                                    for (String cmd : backport.preApplyGenCommands()) {
-                                        runner.execFullCommand(cmd);
+                                    for (var cmd : backport.preApplyGenCommands()) {
+                                        run(runner, cmd, vars);
                                     }
                                 }
 
@@ -102,8 +107,8 @@ public class BackportCommand {
 
                                 if (!backport.postApplyGenCommands().isEmpty()) {
                                     runner.log("Running post-apply commands...");
-                                    for (String cmd : backport.postApplyGenCommands()) {
-                                        runner.execFullCommand(cmd);
+                                    for (var cmd : backport.postApplyGenCommands()) {
+                                        run(runner, cmd, vars);
                                     }
                                 }
                             }
@@ -130,10 +135,15 @@ public class BackportCommand {
                             runner.resolveHome(".gradle/"),
                             "backport-" + pr.getNumber() + "-" + System.currentTimeMillis() / 1000,
                             () -> {
+                                var vars = Map.of(
+                                        "baseBranch", pr.getBase().getRef(),
+                                        "targetBranch", branch
+                                );
+
                                 if (!backport.preApplyCommands().isEmpty()) {
                                     runner.log("Running pre-apply commands...");
-                                    for (String cmd : backport.preApplyCommands()) {
-                                        runner.execFullCommand(cmd);
+                                    for (var cmd : backport.preApplyCommands()) {
+                                        run(runner, cmd, vars);
                                     }
                                 }
 
@@ -149,8 +159,8 @@ public class BackportCommand {
 
                                 if (!backport.postApplyCommands().isEmpty()) {
                                     runner.log("Running post-apply commands...");
-                                    for (String cmd : backport.postApplyCommands()) {
-                                        runner.execFullCommand(cmd);
+                                    for (var cmd : backport.postApplyCommands()) {
+                                        run(runner, cmd, vars);
                                     }
                                 }
                             }
@@ -186,5 +196,12 @@ public class BackportCommand {
                 })
                 .onFailure(exception)
                 .queue();
+    }
+
+    private static void run(ActionRunner runner, Configuration.ConditionalValue<String> cmd, Map<String, ?> variables) {
+        var c = cmd.get(runner, variables);
+        if (c != null) {
+            runner.execFullCommand(c);
+        }
     }
 }
