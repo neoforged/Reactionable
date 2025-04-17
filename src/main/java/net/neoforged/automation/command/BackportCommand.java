@@ -201,7 +201,9 @@ public class BackportCommand {
     private static void run(ActionRunner runner, Configuration.ConditionalValue<String> cmd, Map<String, ?> variables) {
         var c = cmd.get(runner, variables);
         if (c != null) {
-            runner.execFullCommand(c);
+            for (String subCommand : c.split("\n")) {
+                runner.execFullCommand(subCommand.trim());
+            }
         }
     }
 }
