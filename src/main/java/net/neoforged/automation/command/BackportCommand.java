@@ -5,9 +5,10 @@ import net.neoforged.automation.Main;
 import net.neoforged.automation.runner.ActionExceptionHandler;
 import net.neoforged.automation.runner.ActionRunner;
 import net.neoforged.automation.runner.GitRunner;
+import net.neoforged.automation.util.DiffUtils;
 import net.neoforged.automation.util.FunctionalInterfaces;
+import net.neoforged.automation.util.Util;
 import net.neoforged.automation.webhook.handler.AutomaticLabelHandler;
-import net.neoforged.automation.webhook.label.BackportHandler;
 import org.eclipse.jgit.transport.RefSpec;
 import org.jetbrains.annotations.Nullable;
 import org.kohsuke.github.GHPullRequest;
@@ -94,10 +95,7 @@ public class BackportCommand {
                             runner.resolveHome(".gradle/"),
                             System.currentTimeMillis() / 1000,
                             () -> {
-                                var vars = Map.of(
-                                        "baseBranch", pr.getBase().getRef(),
-                                        "targetBranch", branch
-                                );
+                                var vars = computeVariables(pr, branch);
 
                                 if (!backport.preApplyGenCommands().isEmpty()) {
                                     runner.log("Running pre-apply commands...");
@@ -142,10 +140,7 @@ public class BackportCommand {
                             runner.resolveHome(".gradle/"),
                             "backport-" + pr.getNumber() + "-" + System.currentTimeMillis() / 1000,
                             () -> {
-                                var vars = Map.of(
-                                        "baseBranch", pr.getBase().getRef(),
-                                        "targetBranch", branch
-                                );
+                                var vars = computeVariables(pr, branch);
 
                                 if (!backport.preApplyCommands().isEmpty()) {
                                     runner.log("Running pre-apply commands...");
@@ -212,5 +207,15 @@ public class BackportCommand {
                 runner.execFullCommand(subCommand.trim());
             }
         }
+    }
+
+    private static Map<String, ?> computeVariables(GHPullRequest pr, String branch) {
+        return Map.of(
+                "pr", Map.of(
+                        "base", pr.getBase().getRef(),
+                        "changedFiles", DiffUtils.detectChangedFiles(Util.readLines(pr.getDiffUrl()))
+                ),
+                "target", branch
+        );
     }
 }
