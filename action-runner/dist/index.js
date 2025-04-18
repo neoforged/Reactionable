@@ -77998,9 +77998,15 @@ async function onMessage(ws, msg) {
         ws.send(JSON.stringify({ result: (0, eval_1.default)(toEval, 'expreval', vars, true).result }));
     }
     else if (json.type == 'save-cache') {
-        const ch = await cache.saveCache(json.paths, json.key);
-        console.log(`Saved cache from ` + json.paths + ` as ` + json.key);
-        ws.send(JSON.stringify({ id: ch }));
+        const ch = await cache.saveCache(json.paths, json.key).catch(_ => undefined);
+        if (ch == undefined) {
+            console.log(`Cache could not be saved`);
+            ws.send(JSON.stringify({ id: -1 }));
+        }
+        else {
+            console.log(`Saved cache from ` + json.paths + ` as ` + json.key);
+            ws.send(JSON.stringify({ id: ch }));
+        }
     }
     else if (json.type == 'restore-cache') {
         const ch = await cache.restoreCache(json.paths, json.key);
