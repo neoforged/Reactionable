@@ -7,6 +7,7 @@ import net.neoforged.automation.runner.ActionRunner;
 import net.neoforged.automation.runner.GitRunner;
 import net.neoforged.automation.util.FunctionalInterfaces;
 import net.neoforged.automation.webhook.handler.AutomaticLabelHandler;
+import net.neoforged.automation.webhook.label.BackportHandler;
 import org.eclipse.jgit.transport.RefSpec;
 import org.jetbrains.annotations.Nullable;
 import org.kohsuke.github.GHPullRequest;
@@ -59,7 +60,13 @@ public class BackportCommand {
 
                         var labelsToAdd = pr.getLabels()
                                 .stream()
-                                .filter(l -> !l.getName().startsWith("1.") && !ignoredLabels.contains(l.getName()))
+                                .filter(l -> {
+                                    if (l.getName().startsWith("1.") || ignoredLabels.contains(l.getName())) {
+                                        return false;
+                                    }
+                                    // We do not move over functional labels
+                                    return configuration.getRepo(pr.getRepository()).getLabelHandler(l.getName()) == null;
+                                })
                                 .toList();
 
                         if (!labelsToAdd.isEmpty()) {

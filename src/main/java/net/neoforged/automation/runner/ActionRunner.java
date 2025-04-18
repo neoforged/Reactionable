@@ -206,12 +206,13 @@ public class ActionRunner {
     }
 
     private ObjectNode sendAndExpect(String type, Consumer<ObjectNode> cons) {
-        nextMessage = new CompletableFuture<>();
+        var future = new CompletableFuture<ObjectNode>();
+        this.nextMessage = future;
         var node = Main.JSON.createObjectNode();
         node.put("type", type);
         cons.accept(node);
         context.send(node.toPrettyString());
-        return nextMessage.join();
+        return future.join();
     }
 
     public void acceptMessage(WsMessageContext context) throws JsonProcessingException {
