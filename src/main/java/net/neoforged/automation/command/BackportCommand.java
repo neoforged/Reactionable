@@ -54,7 +54,7 @@ public class BackportCommand {
 
                         var createdPr = pr.getRepository()
                                 .createPullRequest(
-                                        "Backport to " + branch + ": " + pr.getTitle().replaceFirst("^[\\[\\(][\\d\\.]+[\\]\\)]", ""),
+                                        "Backport to " + branch + ": " + pr.getTitle().replaceFirst("^[\\[\\(][\\d\\.]+[\\]\\)]|(Backport to [\\d.]+:)", "").trim(),
                                         newBranch, branch, body.toString()
                                 );
 
