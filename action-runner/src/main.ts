@@ -103,7 +103,7 @@ export async function onMessage(ws: WebSocket, msg: any) {
   } else if (json.type == 'save-cache') {
     const ch = await cache.saveCache(json.paths, json.key).catch(_ => undefined)
     if (ch == undefined) {
-      console.log(`Cache could not be saved`)
+      console.error(`Cache could not be saved`)
       ws.send(JSON.stringify({id: -1}))
     } else {
       console.log(`Saved cache from ` + json.paths + ` as ` + json.key)

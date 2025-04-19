@@ -14,7 +14,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 public record BackportHandler(String version) implements LabelHandler {
-    private static final Set<Integer> RUNNING_PRS = Collections.synchronizedSet(new HashSet<>());
+    private record PRRun(int number, String backportBranch) {}
+    private static final Set<PRRun> RUNNING_PRS = Collections.synchronizedSet(new HashSet<>());
 
     @Override
     public void onLabelAdded(GitHub gitHub, GHUser actor, GHIssue issue, GHLabel label) throws Exception {
@@ -23,7 +24,7 @@ public record BackportHandler(String version) implements LabelHandler {
             if (version().equals(pr.getBase().getRef())) {
                 pr.removeLabel(label.getName());
             } else {
-                RUNNING_PRS.add(pr.getNumber());
+                RUNNING_PRS.add(new PRRun(pr.getNumber(), version()));
                 run(gitHub, pr, actor, label);
             }
         } else {
@@ -34,7 +35,7 @@ public record BackportHandler(String version) implements LabelHandler {
     @Override
     public void onSynchronized(GitHub gitHub, GHUser actor, GHPullRequest pullRequest, GHLabel label) throws Exception {
         Main.scheduleUntil(() -> {
-            if (RUNNING_PRS.add(pullRequest.getNumber())) {
+            if (RUNNING_PRS.add(new PRRun(pullRequest.getNumber(), version()))) {
                 run(gitHub, pullRequest, actor, label);
                 return true;
             }
@@ -48,7 +49,7 @@ public record BackportHandler(String version) implements LabelHandler {
                 gitHub, pr,
                 Configuration.get(), version,
                 (runner, err) -> {
-                    RUNNING_PRS.remove(pr.getNumber());
+                    RUNNING_PRS.remove(new PRRun(pr.getNumber(), version()));
 
                     try {
                         var message = new StringBuilder();
@@ -65,10 +66,15 @@ public record BackportHandler(String version) implements LabelHandler {
                     }
                 },
                 createdPr -> {
-                    RUNNING_PRS.remove(pr.getNumber());
+                    RUNNING_PRS.remove(new PRRun(pr.getNumber(), version()));
 
                     if (createdPr != null) {
                         pr.comment("Created backport PR: #" + createdPr.getNumber());
+                    }
+
+                    // If the PR is merged then it's not going to have further updates so we can remove the label
+                    if (pr.isMerged()) {
+                        pr.removeLabel(label.getName());
                     }
                 },
                 Set.of(label.getName())
