@@ -204,7 +204,9 @@ public class BackportCommand {
         var c = cmd.get(runner, variables);
         if (c != null) {
             for (String subCommand : c.split("\n")) {
-                runner.execFullCommand(subCommand.trim());
+                if (!subCommand.isBlank()) {
+                    runner.execFullCommand(subCommand.trim());
+                }
             }
         }
     }
