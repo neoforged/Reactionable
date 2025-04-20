@@ -64,6 +64,9 @@ public record BackportHandler(String version) implements LabelHandler {
                     } catch (Exception ex) {
                         throw new RuntimeException(ex);
                     }
+
+                    // Remove the label after a failure so it can easily be triggered again
+                    pr.removeLabel(label.getName());
                 },
                 createdPr -> {
                     RUNNING_PRS.remove(new PRRun(pr.getNumber(), version()));
