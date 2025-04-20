@@ -77991,7 +77991,7 @@ async function onMessage(ws, msg) {
         console.log(`Read file from ${pth}`);
     }
     else if (json.type == "log") {
-        console.info(json.message);
+        core.warning(json.message);
         ws.send("{}");
     }
     else if (json.type == 'eval') {
