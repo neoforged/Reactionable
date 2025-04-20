@@ -90,6 +90,8 @@ public class BackportCommand {
                     runner.git("init");
                     runner.clone(pr.getRepository().getHtmlUrl() + ".git", "origin", pr.getBase().getSha());
 
+                    runner.detectAndSetJavaVersion();
+
                     runner.runCaching(
                             "gradle-pr-" + pr.getRepository().getFullName() + "-" + pr.getNumber() + "-",
                             runner.resolveHome(".gradle/"),
@@ -134,6 +136,8 @@ public class BackportCommand {
                 .run(runner -> {
                     runner.git("init");
                     runner.clone(pr.getRepository().getHtmlUrl() + ".git", "origin", branch);
+
+                    runner.detectAndSetJavaVersion();
 
                     runner.runCaching(
                             "gradle-branch-" + pr.getRepository().getFullName() + "-" + branch + "-",

@@ -15,6 +15,7 @@ import org.kohsuke.github.GHWorkflowRun;
 import org.kohsuke.github.GitHub;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +24,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 public class ActionRunner {
     Future<?> execution;
@@ -72,10 +74,6 @@ public class ActionRunner {
         return exec(ArrayUtils.addFirst(command, "git"));
     }
 
-    public void setJavaVersion(int version) {
-        exec("echo", "JAVA_HOME=$(echo $JAVA_HOME_" + version + "_X64)", ">>", "$GITHUB_ENV");
-    }
-    
     public void gradle(String... command) {
         exec(ArrayUtils.addFirst(command, "./gradlew"));
     }
@@ -113,6 +111,46 @@ public class ActionRunner {
         }
 
         return null;
+    }
+
+    @Nullable
+    public String getEnvVar(String name) {
+        try {
+            return exec("printenv", name).trim();
+        } catch (ExecutionException ex) {
+            return null;
+        }
+    }
+
+    public void setEnvVar(String name, String value) {
+        sendAndExpect("set-env", node -> {
+            node.put("name", name);
+            node.put("value", value);
+        });
+    }
+
+    private static final Pattern JAVA_VERSION_PATTERN = Pattern.compile("^\\s*java\\s*:\\s*(\\d+)", Pattern.MULTILINE);
+
+    /**
+     * Attempts to detect the java version from a {@code .github/workflows/release.yml} file and set the java home env var to that version.
+     */
+    public void detectAndSetJavaVersion() {
+        var file = readFile(".github/workflows/release.yml");
+        if (file != null) {
+            var content = new String(file, StandardCharsets.UTF_8);
+            var matcher = JAVA_VERSION_PATTERN.matcher(content);
+            if (matcher.find()) {
+                var version = matcher.group(1);
+                log("Detected Java version " + version + " from workflow");
+                var newHome = getEnvVar("JAVA_HOME_" + version + "_X64");
+                if (newHome != null) {
+                    setEnvVar("JAVA_HOME", newHome);
+                    log("Set Java home to version " + version);
+                } else {
+                    log("Java version " + version + " is not installed or cannot be found");
+                }
+            }
+        }
     }
 
     public <E extends Exception> void runCachingGradle(GHPullRequest pr, ThrowingRunnable<E> runner) throws E {

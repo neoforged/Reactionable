@@ -69,6 +69,8 @@ public class BenchmarkCommand {
                     runner.git("init");
                     runner.clone(pr.getRepository().getHtmlUrl() + ".git", "origin", target);
 
+                    runner.detectAndSetJavaVersion();
+
                     runner.runCachingGradle(
                             pr,
                             () -> {
