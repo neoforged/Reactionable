@@ -77967,7 +77967,7 @@ async function onMessage(ws, msg) {
     else if (json.type == "set-env") {
         const name = json.name;
         const value = json.value;
-        await exec.getExecOutput("echo", [name + "=" + value, ">>", process_1.default.env.GITHUB_ENV]);
+        await fs.appendFile(process_1.default.env.GITHUB_ENV, `${name}=${value}\n`);
         ws.send("{}");
     }
     else if (json.type == "write-file") {
