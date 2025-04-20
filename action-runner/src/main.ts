@@ -39,17 +39,22 @@ export async function onMessage(ws: WebSocket, msg: any) {
       userHome: await determineUserHome()
     }))
   } else if (json.type == "command") {
-    const command = json.command
+    const command: string[] = json.command
 
     console.error(`Executing "${command.join(' ')}"\n`)
 
-    const cmdLine = command.shift()
+    let cmdLine = command.shift()!
+    const optional = cmdLine.startsWith("?")
+    if (optional) {
+      cmdLine = cmdLine.substring(1)
+    }
+
     currentCommand = exec.getExecOutput(cmdLine, command, {
       cwd: workspace,
       ignoreReturnCode: true
     })
     .then(executed => {
-      if (executed.exitCode != 0) {
+      if (!optional && executed.exitCode != 0) {
         ws.send(JSON.stringify({
           stderr: executed.stderr
         }))
