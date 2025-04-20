@@ -77964,6 +77964,12 @@ async function onMessage(ws, msg) {
             currentCommand = null;
         });
     }
+    else if (json.type == "set-env") {
+        const name = json.name;
+        const value = json.value;
+        await exec.getExecOutput("echo", [name + "=" + value, ">>", process_1.default.env.GITHUB_ENV]);
+        ws.send("{}");
+    }
     else if (json.type == "write-file") {
         const pth = path.resolve(workspace, json.path);
         await fs.mkdir(path.dirname(pth), {

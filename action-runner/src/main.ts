@@ -70,6 +70,11 @@ export async function onMessage(ws: WebSocket, msg: any) {
       currentCommand = null
     })
 
+  } else if (json.type == "set-env") {
+    const name: string = json.name
+    const value: string = json.value
+    await exec.getExecOutput("echo", [name + "=" + value, ">>", process.env.GITHUB_ENV!])
+    ws.send("{}")
   } else if (json.type == "write-file") {
     const pth = path.resolve(workspace, json.path)
     await fs.mkdir(path.dirname(pth), {
