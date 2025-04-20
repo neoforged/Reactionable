@@ -73,7 +73,7 @@ export async function onMessage(ws: WebSocket, msg: any) {
   } else if (json.type == "set-env") {
     const name: string = json.name
     const value: string = json.value
-    await fs.appendFile(process.env.GITHUB_ENV!, `${name}=${value}\n`)
+    core.exportVariable(name, value)
     ws.send("{}")
   } else if (json.type == "write-file") {
     const pth = path.resolve(workspace, json.path)
