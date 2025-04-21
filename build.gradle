@@ -28,7 +28,7 @@ run {
 }
 
 dependencies {
-    implementation("io.javalin:javalin:6.2.0")
+    implementation("io.javalin:javalin:6.6.0")
     implementation("org.slf4j:slf4j-simple:2.0.12")
 
     compileOnly 'org.jetbrains:annotations:23.1.0'
