@@ -77919,12 +77919,14 @@ const eval_1 = __importDefault(__nccwpck_require__(3070));
 let workspace;
 let currentCommand = null;
 async function run() {
-    let githubWorkspacePath = process_1.default.env['GITHUB_WORKSPACE'];
+    const githubWorkspacePath = process_1.default.env['GITHUB_WORKSPACE'];
     if (!githubWorkspacePath) {
         throw new Error('GITHUB_WORKSPACE not defined');
     }
     workspace = path.resolve(githubWorkspacePath);
-    await setupWs(core.getInput("endpoint"), onMessage);
+    const endpoint = core.getInput("endpoint");
+    core.setSecret(endpoint);
+    await setupWs(endpoint, onMessage);
 }
 async function onMessage(ws, msg) {
     const json = JSON.parse(msg);
@@ -77938,7 +77940,7 @@ async function onMessage(ws, msg) {
     }
     else if (json.type == "command") {
         const command = json.command;
-        console.error(`Executing "${command.join(' ')}"\n`);
+        core.startGroup(`Executing "${command.join(' ')}"`);
         let cmdLine = command.shift();
         const optional = cmdLine.startsWith("?");
         if (optional) {
@@ -77949,6 +77951,8 @@ async function onMessage(ws, msg) {
             ignoreReturnCode: true
         })
             .then(executed => {
+            core.endGroup();
+            console.log(`Command returned exit code ${executed.exitCode}`);
             if (!optional && executed.exitCode != 0) {
                 ws.send(JSON.stringify({
                     stderr: executed.stderr
@@ -77959,7 +77963,6 @@ async function onMessage(ws, msg) {
                     stdout: executed.stdout
                 }));
             }
-            console.log(`\nCommand returned exit code ${executed.exitCode}`);
             return executed;
         }).finally(() => {
             currentCommand = null;

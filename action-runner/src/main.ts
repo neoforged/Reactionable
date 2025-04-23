@@ -17,16 +17,15 @@ let workspace: string;
 let currentCommand: Promise<ExecOutput> | null = null;
 
 export async function run() {
-  let githubWorkspacePath = process.env['GITHUB_WORKSPACE']
+  const githubWorkspacePath = process.env['GITHUB_WORKSPACE']
   if (!githubWorkspacePath) {
     throw new Error('GITHUB_WORKSPACE not defined')
   }
   workspace = path.resolve(githubWorkspacePath)
 
-  await setupWs(
-      core.getInput("endpoint"),
-      onMessage
-  );
+  const endpoint = core.getInput("endpoint")
+  core.setSecret(endpoint)
+  await setupWs(endpoint, onMessage)
 }
 
 export async function onMessage(ws: WebSocket, msg: any) {
@@ -36,13 +35,13 @@ export async function onMessage(ws: WebSocket, msg: any) {
     ws.send(JSON.stringify({
       repository: process.env['GITHUB_REPOSITORY'],
       id: parseInt(process.env['GITHUB_RUN_ID']!),
-      token: process.env['GITHUB_TOKEN']!!,
+      token: process.env['GITHUB_TOKEN'],
       userHome: await determineUserHome()
     }))
   } else if (json.type == "command") {
     const command: string[] = json.command
 
-    console.error(`Executing "${command.join(' ')}"\n`)
+    core.startGroup(`Executing "${command.join(' ')}"`)
 
     let cmdLine = command.shift()!
     const optional = cmdLine.startsWith("?")
@@ -55,6 +54,8 @@ export async function onMessage(ws: WebSocket, msg: any) {
       ignoreReturnCode: true
     })
     .then(executed => {
+      core.endGroup()
+      console.log(`Command returned exit code ${executed.exitCode}`)
       if (!optional && executed.exitCode != 0) {
         ws.send(JSON.stringify({
           stderr: executed.stderr
@@ -64,8 +65,6 @@ export async function onMessage(ws: WebSocket, msg: any) {
           stdout: executed.stdout
         }))
       }
-
-      console.log(`\nCommand returned exit code ${executed.exitCode}`)
       return executed
     }).finally(() => {
       currentCommand = null
