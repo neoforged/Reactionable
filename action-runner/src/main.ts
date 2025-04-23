@@ -60,7 +60,13 @@ export async function onMessage(ws: WebSocket, msg: any) {
     })
     .then(executed => {
       core.endGroup()
-      console.log(`Command returned exit code ${executed.exitCode}`)
+
+      let log = core.info
+      if (executed.exitCode != 0) {
+        log = core.error
+      }
+      log(`Command returned exit code ${executed.exitCode}`)
+
       if (!optional && executed.exitCode != 0) {
         ws.send(JSON.stringify({
           stderr: executed.stderr
@@ -98,7 +104,19 @@ export async function onMessage(ws: WebSocket, msg: any) {
     }
     console.log(`Read file from ${pth}`)
   } else if (json.type == "log") {
-    core.warning(json.message)
+    const type: string = json.logType
+    const message: string = json.message
+
+    if (type == 'error') {
+      core.error(message)
+    } else if (type == 'warning' || !type) {
+      core.warning(message)
+    } else if (type == 'info') {
+      core.info(message)
+    } else if (type == 'debug') {
+      core.debug(message)
+    }
+
     ws.send("{}")
   } else if (json.type == 'eval') {
     const expression = json.expression
@@ -129,6 +147,16 @@ export async function onMessage(ws: WebSocket, msg: any) {
     if (ch) console.log(`Restored cache to ` + json.paths)
     else console.log(`No cache hit`)
     ws.send("{}")
+  } else if (json.type == 'mask') {
+    core.setSecret(json.value)
+    ws.send("{}")
+  } else if (json.type == 'group') {
+    const title = json.title
+    if (title) {
+      core.startGroup(title)
+    } else {
+      core.endGroup()
+    }
   }
 }
 

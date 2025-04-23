@@ -234,6 +234,23 @@ public class ActionRunner {
         sendAndExpect("log", n -> n.put("message", message));
     }
 
+    public <E extends Exception> void group(String title, ThrowingRunnable<E> toRun) throws E {
+        pushGroup(title);
+        try {
+            toRun.run();
+        } finally {
+            popGroup();
+        }
+    }
+
+    public void pushGroup(String title) {
+        sendAndExpect("group", o -> o.put("title", title));
+    }
+
+    public void popGroup() {
+        sendAndExpect("group");
+    }
+
     public void stop() {
         context.closeSession(WsCloseStatus.NORMAL_CLOSURE, "actions executed");
         handler.close(this, false);
