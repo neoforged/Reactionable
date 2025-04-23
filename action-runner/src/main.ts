@@ -23,7 +23,12 @@ export async function run() {
   }
   workspace = path.resolve(githubWorkspacePath)
 
-  const endpoint = core.getInput("endpoint")
+  let endpoint = core.getInput("endpoint")
+  if (!endpoint) {
+    const json = JSON.parse(await fs.readFile(process.env['GITHUB_EVENT_PATH']!!, {encoding: 'utf8'}))
+    endpoint = json.inputs[core.getInput('endpoint-input')]
+  }
+
   core.setSecret(endpoint)
   await setupWs(endpoint, onMessage)
 }

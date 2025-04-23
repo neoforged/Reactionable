@@ -4,7 +4,9 @@ description: 'An action for publishing PRs'
 inputs:
   endpoint:
     description: Endpoint to login
-    required: true
+  endpoint-input:
+    description: If endpoint is not provided, it will be gotten from the input value with this name of the action
+    default: endpoint
 
 runs:
   using: node20
