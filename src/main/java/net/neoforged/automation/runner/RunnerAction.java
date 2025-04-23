@@ -1,5 +1,6 @@
 package net.neoforged.automation.runner;
 
+@FunctionalInterface
 public interface RunnerAction {
     void run(ActionRunner runner) throws Exception;
 

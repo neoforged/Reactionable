@@ -1,5 +1,6 @@
 package net.neoforged.automation.runner;
 
+@FunctionalInterface
 public interface ActionExceptionHandler {
     void accept(ActionRunner runner, String exception) throws Exception;
 

@@ -88,7 +88,7 @@ public final class ActionRunnerHandler implements Consumer<WsConfig> {
         private final GitHub gitHub;
         private final Configuration.PRActions config;
         private RunnerOS os = RunnerOS.UBUNTU;
-        private String name = "Runner";
+        private String name = "Run";
 
         private RunnerAction runner;
         private ActionExceptionHandler onFailure;
