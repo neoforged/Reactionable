@@ -78063,6 +78063,7 @@ async function onMessage(ws, msg) {
         else {
             core.endGroup();
         }
+        ws.send("{}");
     }
 }
 async function setupWs(url, msg) {

@@ -157,6 +157,7 @@ export async function onMessage(ws: WebSocket, msg: any) {
     } else {
       core.endGroup()
     }
+    ws.send("{}")
   }
 }
 
