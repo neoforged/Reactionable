@@ -77932,6 +77932,7 @@ async function onMessage(ws, msg) {
         ws.send(JSON.stringify({
             repository: process_1.default.env['GITHUB_REPOSITORY'],
             id: parseInt(process_1.default.env['GITHUB_RUN_ID']),
+            token: process_1.default.env['GITHUB_TOKEN'],
             userHome: await determineUserHome()
         }));
     }

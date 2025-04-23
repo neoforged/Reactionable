@@ -36,6 +36,7 @@ export async function onMessage(ws: WebSocket, msg: any) {
     ws.send(JSON.stringify({
       repository: process.env['GITHUB_REPOSITORY'],
       id: parseInt(process.env['GITHUB_RUN_ID']!),
+      token: process.env['GITHUB_TOKEN']!!,
       userHome: await determineUserHome()
     }))
   } else if (json.type == "command") {
