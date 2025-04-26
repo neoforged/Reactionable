@@ -77984,8 +77984,8 @@ async function onMessage(ws, msg) {
         const command = json.command;
         core.info(`Executing "${command.join(' ')}" in the background`);
         const cmdLine = command.shift();
-        await fs.mkdir('/bg-process');
-        const file = `/bg-process/${id}-${uuid.v4()}`;
+        await fs.mkdir(path.resolve(workspace, './.bg-process'));
+        const file = path.resolve(workspace, `./.bg-process/${id}-${uuid.v4()}`);
         const stream = streamfs.createWriteStream(file);
         const promise = exec.exec(cmdLine, command, {
             cwd: workspace,
