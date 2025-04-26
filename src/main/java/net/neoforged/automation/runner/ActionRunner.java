@@ -224,14 +224,14 @@ public class ActionRunner {
         return res.get("stdout").asText();
     }
 
-    public void backgroundExec(String id, String... command) {
-        sendAndExpect("background-command", node -> {
+    public String backgroundExec(String id, String... command) {
+        return sendAndExpect("background-command", node -> {
             var arr = node.putArray("command");
             for (String cmd : command) {
                 arr.add(cmd);
             }
             node.put("id", id);
-        });
+        }).get("output").asText();
     }
 
     public String execFullCommand(String command) {

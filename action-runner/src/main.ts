@@ -6,7 +6,10 @@ import * as path from 'path'
 import * as semver from 'semver'
 
 import * as fs from 'fs/promises'
+import * as streamfs from 'node:fs'
 import * as os from 'os'
+
+import * as uuid from 'uuid'
 
 import process from 'process'
 
@@ -91,14 +94,18 @@ export async function onMessage(ws: WebSocket, msg: any) {
 
     const cmdLine = command.shift()!
 
+    const file = `/bg-process/${id}-${uuid.v4()}`
+    const stream = streamfs.createWriteStream(file)
+
     const promise = exec.exec(cmdLine, command, {
       cwd: workspace,
       ignoreReturnCode: true,
-      silent: true
+      outStream: stream,
+      errStream: stream
     }).finally(() => backgroundCommands.delete(id))
     backgroundCommands.set(id, promise)
 
-    ws.send("{}")
+    ws.send(JSON.stringify({output: file}))
   } else if (json.type == "set-env") {
     const name: string = json.name
     const value: string = json.value
