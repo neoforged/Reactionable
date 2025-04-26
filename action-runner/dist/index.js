@@ -77918,6 +77918,7 @@ const ws_1 = __importStar(__nccwpck_require__(1354));
 const eval_1 = __importDefault(__nccwpck_require__(3070));
 let workspace;
 let currentCommand = null;
+const backgroundCommands = new Map();
 async function run() {
     const githubWorkspacePath = process_1.default.env['GITHUB_WORKSPACE'];
     if (!githubWorkspacePath) {
@@ -77975,6 +77976,19 @@ async function onMessage(ws, msg) {
         }).finally(() => {
             currentCommand = null;
         });
+    }
+    else if (json.type == "background-command") {
+        const id = json.id;
+        const command = json.command;
+        core.info(`Executing "${command.join(' ')}" in the background`);
+        const cmdLine = command.shift();
+        const promise = exec.exec(cmdLine, command, {
+            cwd: workspace,
+            ignoreReturnCode: true,
+            silent: true
+        }).finally(() => backgroundCommands.delete(id));
+        backgroundCommands.set(id, promise);
+        ws.send("{}");
     }
     else if (json.type == "set-env") {
         const name = json.name;

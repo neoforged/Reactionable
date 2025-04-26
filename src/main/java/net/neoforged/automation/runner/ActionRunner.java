@@ -224,6 +224,16 @@ public class ActionRunner {
         return res.get("stdout").asText();
     }
 
+    public void backgroundExec(String id, String... command) {
+        sendAndExpect("background-command", node -> {
+            var arr = node.putArray("command");
+            for (String cmd : command) {
+                arr.add(cmd);
+            }
+            node.put("id", id);
+        });
+    }
+
     public String execFullCommand(String command) {
         return exec(toArgs(command).stream()
                 .filter(Predicate.not(String::isBlank))

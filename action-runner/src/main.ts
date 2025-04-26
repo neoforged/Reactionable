@@ -16,6 +16,8 @@ import nodeEval from "eval";
 let workspace: string;
 let currentCommand: Promise<ExecOutput> | null = null;
 
+const backgroundCommands: Map<string, Promise<number>> = new Map<string, Promise<number>>()
+
 export async function run() {
   const githubWorkspacePath = process.env['GITHUB_WORKSPACE']
   if (!githubWorkspacePath) {
@@ -81,6 +83,22 @@ export async function onMessage(ws: WebSocket, msg: any) {
       currentCommand = null
     })
 
+  } else if (json.type == "background-command") {
+    const id: string = json.id
+    const command: string[] = json.command
+
+    core.info(`Executing "${command.join(' ')}" in the background`)
+
+    const cmdLine = command.shift()!
+
+    const promise = exec.exec(cmdLine, command, {
+      cwd: workspace,
+      ignoreReturnCode: true,
+      silent: true
+    }).finally(() => backgroundCommands.delete(id))
+    backgroundCommands.set(id, promise)
+
+    ws.send("{}")
   } else if (json.type == "set-env") {
     const name: string = json.name
     const value: string = json.value
