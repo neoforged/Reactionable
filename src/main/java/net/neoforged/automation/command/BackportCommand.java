@@ -106,7 +106,7 @@ public class BackportCommand {
                                     }
                                 }
 
-                                try (var is = pr.getDiffUrl().openStream()) {
+                                try (var is = GitHubAccessor.readDiff(pr)) {
                                     runner.writeFile("__diff", new String(is.readAllBytes()));
                                 }
                                 runner.git("apply", "--ignore-whitespace", "__diff");
@@ -219,7 +219,7 @@ public class BackportCommand {
         return Map.of(
                 "pr", Map.of(
                         "base", pr.getBase().getRef(),
-                        "changedFiles", DiffUtils.detectChangedFiles(Util.readLines(pr.getDiffUrl()))
+                        "changedFiles", DiffUtils.detectChangedFiles(Util.readLines(GitHubAccessor.readDiff(pr)))
                 ),
                 "target", branch
         );

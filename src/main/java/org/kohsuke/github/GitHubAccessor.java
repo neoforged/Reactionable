@@ -11,6 +11,7 @@ import com.apollographql.apollo.api.json.JsonWriter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectReader;
 import net.neoforged.automation.util.AuthUtil;
+import net.neoforged.automation.util.Util;
 import okio.Buffer;
 import okio.Okio;
 import org.apache.commons.io.input.ReaderInputStream;
@@ -20,6 +21,7 @@ import org.jetbrains.annotations.Nullable;
 import org.kohsuke.github.function.InputStreamFunction;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringReader;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -171,6 +173,17 @@ public class GitHubAccessor {
         try {
             return repo.getLabel(name);
         } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    public static InputStream readDiff(GHPullRequest pr) {
+        try {
+            var conn = pr.getDiffUrl().openConnection();
+            conn.setRequestProperty("Authorization", pr.root().getClient().getEncodedAuthorization());
+            return conn.getInputStream();
+        } catch (Exception ex) {
+            Util.sneakyThrow(ex);
             return null;
         }
     }
