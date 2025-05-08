@@ -21,7 +21,6 @@ import org.jetbrains.annotations.Nullable;
 import org.kohsuke.github.function.InputStreamFunction;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.StringReader;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -177,14 +176,15 @@ public class GitHubAccessor {
         }
     }
 
-    public static InputStream readDiff(GHPullRequest pr) {
+    public static String readDiff(GHPullRequest pr) {
         try {
-            var conn = pr.getDiffUrl().openConnection();
-            conn.setRequestProperty("Authorization", pr.root().getClient().getEncodedAuthorization());
-            return conn.getInputStream();
+            return pr.root().createRequest()
+                    .withAccept("application/vnd.github.diff")
+                    .withUrlPath(pr.getApiRoute())
+                    .fetchStream(s -> new String(s.readAllBytes(), StandardCharsets.UTF_8));
         } catch (Exception ex) {
             Util.sneakyThrow(ex);
-            return null;
+            return "";
         }
     }
 }

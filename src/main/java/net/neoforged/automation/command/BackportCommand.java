@@ -7,7 +7,6 @@ import net.neoforged.automation.runner.ActionRunner;
 import net.neoforged.automation.runner.GitRunner;
 import net.neoforged.automation.util.DiffUtils;
 import net.neoforged.automation.util.FunctionalInterfaces;
-import net.neoforged.automation.util.Util;
 import net.neoforged.automation.webhook.handler.AutomaticLabelHandler;
 import org.eclipse.jgit.transport.RefSpec;
 import org.jetbrains.annotations.Nullable;
@@ -106,9 +105,7 @@ public class BackportCommand {
                                     }
                                 }
 
-                                try (var is = GitHubAccessor.readDiff(pr)) {
-                                    runner.writeFile("__diff", new String(is.readAllBytes()));
-                                }
+                                runner.writeFile("__diff", GitHubAccessor.readDiff(pr));
                                 runner.git("apply", "--ignore-whitespace", "__diff");
                                 runner.exec("rm", "__diff");
 
@@ -219,7 +216,7 @@ public class BackportCommand {
         return Map.of(
                 "pr", Map.of(
                         "base", pr.getBase().getRef(),
-                        "changedFiles", DiffUtils.detectChangedFiles(Util.readLines(GitHubAccessor.readDiff(pr)))
+                        "changedFiles", DiffUtils.detectChangedFiles(GitHubAccessor.readDiff(pr).trim().split("\n"))
                 ),
                 "target", branch
         );
