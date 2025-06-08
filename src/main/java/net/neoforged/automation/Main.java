@@ -61,7 +61,7 @@ public class Main {
 
         var location = Configuration.load(gitHub, startupConfig);
 
-        var webhook = setupWebhookHandlers(startupConfig, new WebhookHandler(startupConfig, gitHub), location);
+        var webhook = setupWebhookHandlers(startupConfig, new WebhookHandler(startupConfig.get("webhookSecret", ""), gitHub), location);
 
         fileHostService = new FileHostService(Path.of("files"), startupConfig);
 

@@ -35,8 +35,8 @@ public class WebhookHandler implements Handler {
 
     private final Map<GitHubEvent, EventHandler[]> handlers = new IdentityHashMap<>();
 
-    public WebhookHandler(StartupConfiguration configuration, GitHub gitHub) {
-        this.secretToken = configuration.get("webhookSecret", "").getBytes(StandardCharsets.UTF_8);
+    public WebhookHandler(String secretToken, GitHub gitHub) {
+        this.secretToken = secretToken.getBytes(StandardCharsets.UTF_8);
         this.gitHub = gitHub;
     }
 

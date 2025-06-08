@@ -15,5 +15,6 @@ public record MergeLabelHandler(@JsonFormat(with = JsonFormat.Feature.ACCEPT_CAS
 
         final String title = pr.getTitle() + " (#" + pr.getNumber() + ")";
         GitHubAccessor.merge(pr, title, null, method);
+        issue.removeLabels(label);
     }
 }
