@@ -7,6 +7,8 @@ import net.neoforged.automation.command.Commands;
 import net.neoforged.automation.db.Database;
 import net.neoforged.automation.discord.DiscordBot;
 import net.neoforged.automation.runner.ActionRunnerHandler;
+import net.neoforged.automation.service.FileHostService;
+import net.neoforged.automation.service.RenovateMetadataService;
 import net.neoforged.automation.util.AuthUtil;
 import net.neoforged.automation.util.GHAction;
 import net.neoforged.automation.webhook.handler.AutomaticLabelHandler;
@@ -77,6 +79,7 @@ public class Main {
                 .ws("/runner/<id>/ws", actionRunner)
 
                 .get("/file/<file>", fileHostService::get)
+                .get("/renovate/<package>/<current>", RenovateMetadataService::get)
 
                 .start(startupConfig.getInt("port", 8080));
 

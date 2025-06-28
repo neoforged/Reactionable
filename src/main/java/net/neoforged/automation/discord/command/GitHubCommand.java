@@ -13,6 +13,7 @@ import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubAccessor;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -87,7 +88,13 @@ public class GitHubCommand extends BaseDiscordCommand {
                         git.push()
                                 .setCredentialsProvider(creds)
                                 .setRemote("origin")
-                                .setRefSpecs(new RefSpec(branch), new RefSpec(tag))
+                                .setRefSpecs(new RefSpec(tag))
+                                .call();
+
+                        git.push()
+                                .setCredentialsProvider(creds)
+                                .setRemote("origin")
+                                .setRefSpecs(new RefSpec(branch))
                                 .call();
                     }
             );
@@ -128,8 +135,12 @@ public class GitHubCommand extends BaseDiscordCommand {
 
             for (GHCache ghCache : caches) {
                 if (pattern.test(ghCache.getKey()) && refPattern.test(ghCache.getRef())) {
-                    ghCache.delete();
-                    deleted++;
+                    try {
+                        ghCache.delete();
+                        deleted++;
+                    } catch (IOException ignore) {
+                        // Sometimes GitHub may delete older caches before we have a chance to
+                    }
                 }
             }
 

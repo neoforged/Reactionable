@@ -1,8 +1,9 @@
-package net.neoforged.automation;
+package net.neoforged.automation.service;
 
 import io.javalin.http.ContentType;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import net.neoforged.automation.StartupConfiguration;
 import net.neoforged.automation.util.Util;
 
 import java.io.IOException;
