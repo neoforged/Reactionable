@@ -7,6 +7,7 @@ import net.neoforged.automation.runner.ActionRunner;
 import net.neoforged.automation.runner.GitRunner;
 import net.neoforged.automation.util.DiffUtils;
 import net.neoforged.automation.util.FunctionalInterfaces;
+import net.neoforged.automation.util.Label;
 import net.neoforged.automation.webhook.handler.AutomaticLabelHandler;
 import org.eclipse.jgit.transport.RefSpec;
 import org.jetbrains.annotations.Nullable;
@@ -72,6 +73,7 @@ public class BackportCommand {
                         if (!labelsToAdd.isEmpty()) {
                             createdPr.addLabels(labelsToAdd);
                         }
+                        Label.BACKPORT.label(createdPr);
 
                         onFinished.accept(createdPr);
                     } else {
