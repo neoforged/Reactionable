@@ -20,9 +20,12 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class BackportCommand {
+    private static final Pattern VERSION_REGEX = Pattern.compile("^(?:\\d+.){1,2}\\d+$");
+
     public static void createOrUpdatePR(GitHub gh, GHPullRequest pr, Configuration configuration, String branch, ActionExceptionHandler exception,
                                         FunctionalInterfaces.ConsumerException<@Nullable GHPullRequest> onFinished,
                                         Set<String> ignoredLabels) throws IOException {
@@ -62,7 +65,7 @@ public class BackportCommand {
                         var labelsToAdd = pr.getLabels()
                                 .stream()
                                 .filter(l -> {
-                                    if (l.getName().startsWith("1.") || ignoredLabels.contains(l.getName())) {
+                                    if (VERSION_REGEX.matcher(l.getName()).matches() || ignoredLabels.contains(l.getName())) {
                                         return false;
                                     }
                                     // We do not move over functional labels
