@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class BackportCommand {
-    private static final Pattern VERSION_REGEX = Pattern.compile("^(?:\\d+.){1,2}(?:\\d+|x)$");
+    private static final Pattern VERSION_REGEX = Pattern.compile("^(?:\\d+\\.){1,2}(?:\\d+|x)$");
 
     public static void createOrUpdatePR(GitHub gh, GHPullRequest pr, Configuration configuration, String branch, ActionExceptionHandler exception,
                                         FunctionalInterfaces.ConsumerException<@Nullable GHPullRequest> onFinished,
